@@ -1,0 +1,142 @@
+{
+    "name": "Sony PLAYSTATION(R)4 Controller",
+    "guid": "050000004c050000cc09000000810000",
+    "axis": [
+        {
+            "name": "left_x",
+            "id": 0
+        },
+        {
+            "name": "left_y",
+            "id": 1
+        },
+        {
+            "name": "right_x",
+            "id": 3
+        },
+        {
+            "name": "right_y",
+            "id": 4
+        },
+        {
+            "name": "l2",
+            "id": 2
+        },
+        {
+            "name": "r2",
+            "id": 5
+        },
+        {
+            "name": "up",
+            "id": 7
+        },
+        {
+            "name": "down",
+            "id": 7
+        },
+        {
+            "name": "left",
+            "id": 6
+        },
+        {
+            "name": "right",
+            "id": 6
+        }
+    ],
+    "buttons": [
+        {
+            "name": "square",
+            "id": 3
+        },
+        {
+            "name": "triangle",
+            "id": 2
+        },
+        {
+            "name": "circle",
+            "id": 1
+        },
+        {
+            "name": "x",
+            "id": 0
+        },
+        {
+            "name": "l1",
+            "id": 4
+        },
+        {
+            "name": "l2",
+            "id": 6
+        },
+        {
+            "name": "r2",
+            "id": 7
+        },
+        {
+            "name": "r1",
+            "id": 5
+        },
+        {
+            "name": "share",
+            "id": 8
+        },
+        {
+            "name": "options",
+            "id": 9
+        },
+        {
+            "name": "ps",
+            "id": 10
+        },
+        {
+            "name": "left",
+            "id": 11
+        },
+        {
+            "name": "right",
+            "id": 12
+        }
+    ],
+    "hats": [
+        {
+            "hat": 0,
+            "name": "up",
+            "id": 1
+        },
+        {
+            "hat": 0,
+            "name": "up_right",
+            "id": 3
+        },
+        {
+            "hat": 0,
+            "name": "right",
+            "id": 2
+        },
+        {
+            "hat": 0,
+            "name": "down_right",
+            "id": 6
+        },
+        {
+            "hat": 0,
+            "name": "down",
+            "id": 4
+        },
+        {
+            "hat": 0,
+            "name": "down_left",
+            "id": 12
+        },
+        {
+            "hat": 0,
+            "name": "left",
+            "id": 8
+        },
+        {
+            "hat": 0,
+            "name": "up_left",
+            "id": 9
+        }        
+    ]
+}
