@@ -33,8 +33,6 @@ func main() {
 	joystickAdaptor := joystick.NewAdaptor()
 	stick := joystick.NewDriver(joystickAdaptor, "custom.json")
 	display := display.NewLCDDriver(r, display.LCD_16x2, i2c.WithAddress(0x27))
-	stick.Start()
-	display.Start()
 
 	led := gpio.NewRgbLedDriver(r, "11", "12", "13")
 	led.Start()
@@ -157,10 +155,13 @@ func main() {
 }
 
 func refreshWeather(weather *openweathermap.CurrentWeatherData, display *display.LCDDriver) {
-	weather.CurrentByCoordinates(&openweathermap.Coordinates{
+	err := weather.CurrentByCoordinates(&openweathermap.Coordinates{
 		Latitude:  49.52006439392398,
 		Longitude: -117.24903240805295,
 	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error fetching current temperature: %s\n", err.Error())
+	}
 	display.Home()
 	display.Write(fmt.Sprintf("Nelson: %.2fC", weather.Main.FeelsLike))
 }
