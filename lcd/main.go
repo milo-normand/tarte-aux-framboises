@@ -1,70 +1,135 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"log"
-	"time"
+	"math"
+	"strings"
 
-	device "github.com/d2r2/go-hd44780"
-	"github.com/d2r2/go-i2c"
+	"github.com/milo-normand/tarte-aux-framboises/display"
+	"gobot.io/x/gobot"
+	"gobot.io/x/gobot/drivers/gpio"
+	"gobot.io/x/gobot/drivers/i2c"
+	"gobot.io/x/gobot/platforms/joystick"
+	"gobot.io/x/gobot/platforms/raspi"
 )
 
-func checkError(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 func main() {
-	i2c, err := i2c.NewI2C(0x27, 1)
-	checkError(err)
-	defer i2c.Close()
-	lcd, err := device.NewLcd(i2c, device.LCD_16x2)
-	checkError(err)
-	err = lcd.BacklightOn()
-	checkError(err)
-	err = lcd.ShowMessage("--=! Let's rock !=--", device.SHOW_LINE_1)
-	checkError(err)
-	err = lcd.ShowMessage("Welcome to RPi dude!", device.SHOW_LINE_2)
-	checkError(err)
-	// err = lcd.ShowMessage("I'm lazy to be lazy.", device.SHOW_LINE_3)
-	// checkError(err)
-	// err = lcd.ShowMessage("R2D2, where are you?", device.SHOW_LINE_4)
-	// checkError(err)
-	time.Sleep(5 * time.Second)
-	for i := 0; i <= 12; i++ {
-		var buf bytes.Buffer
-		for j := 0; j <= 19; j++ {
-			buf.Write([]byte{byte(i*20 + j)})
-		}
-		err = lcd.ShowMessage(buf.String(), device.SHOW_LINE_1)
-		checkError(err)
-		time.Sleep(1 * time.Second)
-	}
-	time.Sleep(5 * time.Second)
-	err = lcd.TestWriteCGRam()
-	checkError(err)
-	for i := 0; i <= 12; i++ {
-		var buf bytes.Buffer
-		for j := 0; j <= 19; j++ {
-			buf.Write([]byte{byte(i*20 + j)})
-		}
-		err = lcd.ShowMessage(buf.String(), device.SHOW_LINE_1)
-		checkError(err)
-		time.Sleep(1 * time.Second)
-	}
-	lcd.Clear()
-	for {
-		lcd.Home()
-		t := time.Now()
-		lcd.SetPosition(1, 0)
-		fmt.Fprint(lcd, t.Format("Monday Jan 2"))
-		lcd.SetPosition(2, 1)
-		fmt.Fprint(lcd, t.Format("15:04:05 2006"))
-		//		lcd.SetPosition(4, 0)
-		//		fmt.Fprint(lcd, "i2c, VGA, and Go")
-		time.Sleep(666 * time.Millisecond)
+	r := raspi.NewAdaptor()
+	joystickAdaptor := joystick.NewAdaptor()
+	stick := joystick.NewDriver(joystickAdaptor, "custom.json")
+	display := display.NewLCDDriver(r, display.LCD_16x2, i2c.WithAddress(0x27))
+	stick.Start()
+	display.Start()
+
+	led := gpio.NewRgbLedDriver(r, "11", "12", "13")
+	led.Start()
+
+	red := 255.0
+	green := 255.0
+	blue := 255.0
+
+	activeColors := make(map[string]bool, 0)
+
+	work := func() {
+		display.Write("test")
+		// buttons
+		stick.On(joystick.SquarePress, func(data interface{}) {
+			fmt.Println("square_press")
+		})
+		stick.On(joystick.SquareRelease, func(data interface{}) {
+			fmt.Println("square_release")
+		})
+		stick.On(joystick.TrianglePress, func(data interface{}) {
+			activeColors["green"] = !activeColors["green"]
+			fmt.Printf("triangle_press, toggling green: %t\n", activeColors["green"])
+		})
+		stick.On(joystick.TriangleRelease, func(data interface{}) {
+			fmt.Println("triangle_release")
+		})
+		stick.On(joystick.CirclePress, func(data interface{}) {
+			activeColors["red"] = !activeColors["red"]
+			fmt.Printf("circle_release, toggling red: %t\n", activeColors["red"])
+		})
+		stick.On(joystick.CircleRelease, func(data interface{}) {
+			fmt.Println("circle_release")
+		})
+		stick.On(joystick.XPress, func(data interface{}) {
+			activeColors["blue"] = !activeColors["blue"]
+			fmt.Printf("x_press, toggling blue: %t\n", activeColors["blue"])
+		})
+		stick.On(joystick.XRelease, func(data interface{}) {
+			fmt.Println("x_release")
+		})
+		stick.On(joystick.StartPress, func(data interface{}) {
+			fmt.Println("start_press")
+		})
+		stick.On(joystick.StartRelease, func(data interface{}) {
+			fmt.Println("start_release")
+		})
+		stick.On(joystick.SelectPress, func(data interface{}) {
+			fmt.Println("select_press")
+		})
+		stick.On(joystick.SelectRelease, func(data interface{}) {
+			fmt.Println("select_release")
+		})
+
+		// joysticks
+		stick.On(joystick.LeftX, func(data interface{}) {
+			fmt.Println("left_x", data)
+		})
+		stick.On(joystick.LeftY, func(data interface{}) {
+			fmt.Println("left_y", data)
+			if val, ok := data.(int16); !ok {
+				fmt.Printf("error reading int16 value from %v\n", data)
+			} else {
+				val := 255 - math.Abs(float64(val)/32768.0)*255
+
+				enabledColors := make([]string, 0, 3)
+				for k, e := range activeColors {
+					switch {
+					case k == "red" && e:
+						enabledColors = append(enabledColors, k)
+						red = val
+					case k == "green" && e:
+						enabledColors = append(enabledColors, k)
+						green = val
+					case k == "blue" && e:
+						enabledColors = append(enabledColors, k)
+						blue = val
+					}
+				}
+
+				fmt.Printf("Controlling colors: %s\nRed: %d, Green: %d, Blue: %d\n", strings.Join(enabledColors, ", "), byte(red), byte(green), byte(blue))
+				led.SetRGB(byte(red), byte(green), byte(blue))
+			}
+		})
+		stick.On(joystick.RightX, func(data interface{}) {
+			fmt.Println("right_x", data)
+		})
+		stick.On(joystick.RightY, func(data interface{}) {
+			fmt.Println("right_y", data)
+		})
+
+		// triggers
+		stick.On(joystick.R1Press, func(data interface{}) {
+			fmt.Println("R1Press", data)
+		})
+		stick.On(joystick.R2Press, func(data interface{}) {
+			fmt.Println("R2Press", data)
+		})
+		stick.On(joystick.L1Press, func(data interface{}) {
+			fmt.Println("L1Press", data)
+		})
+		stick.On(joystick.L2Press, func(data interface{}) {
+			fmt.Println("L2Press", data)
+		})
 	}
 
+	robot := gobot.NewRobot("blinkBot",
+		[]gobot.Connection{r, joystickAdaptor},
+		[]gobot.Device{led, stick, display},
+		work,
+	)
+
+	robot.Start()
 }
