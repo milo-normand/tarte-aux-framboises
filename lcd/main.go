@@ -161,5 +161,6 @@ func refreshWeather(weather *openweathermap.CurrentWeatherData, display *display
 		Latitude:  49.52006439392398,
 		Longitude: -117.24903240805295,
 	})
+	display.Home()
 	display.Write(fmt.Sprintf("Nelson: %.2fC", weather.Main.FeelsLike))
 }
