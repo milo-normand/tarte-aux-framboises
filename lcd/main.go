@@ -3,8 +3,11 @@ package main
 import (
 	"fmt"
 	"math"
+	"os"
 	"strings"
+	"time"
 
+	"github.com/briandowns/openweathermap"
 	"github.com/milo-normand/tarte-aux-framboises/display"
 	"gobot.io/x/gobot"
 	"gobot.io/x/gobot/drivers/gpio"
@@ -14,6 +17,18 @@ import (
 )
 
 func main() {
+	apiKey := os.Getenv("OWM_API_KEY")
+	if apiKey == "" {
+		fmt.Printf("Missing OWM_API_KEY env variable")
+		os.Exit(-1)
+	}
+
+	weather, err := openweathermap.NewCurrent("C", "en", apiKey)
+	if err != nil {
+		fmt.Printf("Unable to get weather from open weather: %s", err.Error())
+		os.Exit(-1)
+	}
+
 	r := raspi.NewAdaptor()
 	joystickAdaptor := joystick.NewAdaptor()
 	stick := joystick.NewDriver(joystickAdaptor, "custom.json")
@@ -31,7 +46,14 @@ func main() {
 	activeColors := make(map[string]bool, 0)
 
 	work := func() {
-		display.Write("test")
+		go func() {
+			refreshWeather(weather, display)
+			c := time.Tick(10 * time.Minute)
+			for range c {
+				refreshWeather(weather, display)
+			}
+		}()
+
 		// buttons
 		stick.On(joystick.SquarePress, func(data interface{}) {
 			fmt.Println("square_press")
@@ -132,4 +154,12 @@ func main() {
 	)
 
 	robot.Start()
+}
+
+func refreshWeather(weather *openweathermap.CurrentWeatherData, display *display.LCDDriver) {
+	weather.CurrentByCoordinates(&openweathermap.Coordinates{
+		Latitude:  49.52006439392398,
+		Longitude: -117.24903240805295,
+	})
+	display.Write(fmt.Sprintf("Nelson: %.2fC", weather.Main.FeelsLike))
 }
