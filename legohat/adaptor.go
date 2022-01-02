@@ -224,14 +224,14 @@ func ReadPort(port serial.Port, out chan string) {
 
 // Finalize closes connection to the lego hat
 func (l *Adaptor) Finalize() (err error) {
-	for _, d := range l.devices {
-		if d != nil {
-			derr := d.Close()
-			if derr != nil {
-				err = derr
-			}
-		}
-	}
+	// for _, d := range l.devices {
+	// 	if d != nil {
+	// 		derr := d.Close()
+	// 		if derr != nil {
+	// 			err = derr
+	// 		}
+	// 	}
+	// }
 
 	// Return the first error encounted on all devices close, if any
 	if err != nil {

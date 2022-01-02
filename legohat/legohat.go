@@ -73,7 +73,4 @@ func (l *LegoHatDriver) Name() string { return l.name }
 func (l *LegoHatDriver) SetName(n string) { l.name = n }
 
 // Pin returns the ButtonDrivers pin
-func (l *LegoHatDriver) Pin() string { return l.pin }
-
-// Connection returns the ButtonDrivers Connection
-func (l *LegoHatDriver) Connection() gobot.Connection { return l.connection.(gobot.Connection) }
+func (l *LegoHatDriver) Type() string { return l.registration.deviceType.String() }
