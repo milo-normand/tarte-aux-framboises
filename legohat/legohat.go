@@ -20,15 +20,6 @@ type LegoHatDriver struct {
 	gobot.Eventer
 }
 
-type LegoHatPortID int
-
-const (
-	PortOne   = LegoHatPortID(0)
-	PortTwo   = LegoHatPortID(1)
-	PortThree = LegoHatPortID(2)
-	PortFour  = LegoHatPortID(3)
-)
-
 func hatPorts() (ports []LegoHatPortID) {
 	return []LegoHatPortID{PortOne, PortTwo, PortThree, PortFour}
 }

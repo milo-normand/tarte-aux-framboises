@@ -18,6 +18,15 @@ const (
 	bootloaderLine = "BuildHAT bootloader version"
 )
 
+type LegoHatPortID int
+
+const (
+	PortOne   = LegoHatPortID(0)
+	PortTwo   = LegoHatPortID(1)
+	PortThree = LegoHatPortID(2)
+	PortFour  = LegoHatPortID(3)
+)
+
 type HatState string
 
 const (
@@ -49,7 +58,7 @@ type Config struct {
 type Adaptor struct {
 	name        string
 	config      Config
-	devices     map[rune]*Device
+	devices     map[LegoHatPortID]*Device
 	reader      gpio.DigitalReader
 	termination chan bool
 }
