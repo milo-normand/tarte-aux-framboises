@@ -22,10 +22,6 @@ type LegoHatDriver struct {
 	gobot.Eventer
 }
 
-func hatPorts() (ports []LegoHatPortID) {
-	return []LegoHatPortID{PortOne, PortTwo, PortThree, PortFour}
-}
-
 // NewLegoMotorDriver returns a new LegoHatDriver
 func NewLegoMotorDriver(a *Adaptor, portID LegoHatPortID) *LegoHatDriver {
 	b := &LegoHatDriver{

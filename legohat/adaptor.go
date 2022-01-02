@@ -145,7 +145,7 @@ func (l *Adaptor) registerDevice(portID LegoHatPortID, deviceClass DeviceClass) 
 	return &r
 }
 
-func (l *Adaptor) Run(port *serial.Port, ready chan error) (err error) {
+func (l *Adaptor) Run(port serial.Port, ready chan error) (err error) {
 	defer port.Close()
 
 	lines := make(chan string)
@@ -209,7 +209,7 @@ func (l *Adaptor) Run(port *serial.Port, ready chan error) (err error) {
 	return nil
 }
 
-func ReadPort(port *serial.Port, out chan string) {
+func ReadPort(port serial.Port, out chan string) {
 	scanner := bufio.NewScanner(port)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -243,7 +243,7 @@ func (l *Adaptor) Finalize() (err error) {
 	return nil
 }
 
-func initialize(devicePath string, version string) (port *serial.Port, err error) {
+func initialize(devicePath string, version string) (port serial.Port, err error) {
 	mode := &serial.Mode{
 		BaudRate: 115200,
 		Parity:   serial.NoParity,
