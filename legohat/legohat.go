@@ -2,11 +2,8 @@ package legohat
 
 import (
 	_ "embed"
-	"log"
-	"strings"
 
 	"gobot.io/x/gobot"
-	"gobot.io/x/gobot/drivers/gpio"
 )
 
 //go:embed data/version
@@ -19,12 +16,25 @@ type LegoHatDriver struct {
 	DefaultState int
 	pin          string
 	halt         chan bool
-	connection   gpio.DigitalReader
+	connection   *Adaptor
 	gobot.Eventer
 }
 
-// NewLegoHatDriver returns a new LegoHatDriver
-func NewLegoHatDriver(a gpio.DigitalReader) *LegoHatDriver {
+type LegoHatPortID int
+
+const (
+	PortOne   = LegoHatPortID(0)
+	PortTwo   = LegoHatPortID(1)
+	PortThree = LegoHatPortID(2)
+	PortFour  = LegoHatPortID(3)
+)
+
+func hatPorts() (ports []LegoHatPortID) {
+	return []LegoHatPortID{PortOne, PortTwo, PortThree, PortFour}
+}
+
+// NewLegoMotorDriver returns a new LegoHatDriver
+func NewLegoMotorDriver(a *Adaptor, portID LegoHatPortID) *LegoHatDriver {
 	b := &LegoHatDriver{
 		name:         gobot.DefaultName("LegoHat"),
 		connection:   a,
@@ -48,32 +58,11 @@ func NewLegoHatDriver(a gpio.DigitalReader) *LegoHatDriver {
 //	Release int - On button release
 //	Error error - On button error
 func (l *LegoHatDriver) Start() (err error) {
-	err = initialize("/dev/serial0", strings.Replace(version, "\n", "", -1))
-	if err != nil {
-		return err
-	}
-	state := l.DefaultState
-	log.Printf("Default state: %s\n", state)
-	// go func() {
-	// 	for {
-	// 		newValue, err := l.connection.DigitalRead(l.Pin())
-	// 		if err != nil {
-	// 			l.Publish(Error, err)
-	// 		} else if newValue != state && newValue != -1 {
-	// 			state = newValue
-	// 			l.update(newValue)
-	// 		}
-	// 		select {
-	// 		case <-time.After(l.interval):
-	// 		case <-l.halt:
-	// 			return
-	// 		}
-	// 	}
-	// }()
-	return
+	// TODO
+	return nil
 }
 
-// Halt stops polling the button for new information
+// Halt releases the connection to the port
 func (l *LegoHatDriver) Halt() (err error) {
 	return nil
 }
