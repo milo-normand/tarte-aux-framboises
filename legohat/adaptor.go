@@ -11,6 +11,7 @@ import (
 
 	"go.bug.st/serial"
 	"gobot.io/x/gobot"
+	"gobot.io/x/gobot/drivers/gpio"
 )
 
 const (
@@ -58,7 +59,7 @@ type Config struct {
 type Adaptor struct {
 	name        string
 	config      Config
-	devices     map[LegoHatPortID]*Device
+	devices     map[LegoHatPortID]*deviceRegistration
 	reader      gpio.DigitalReader
 	termination chan bool
 }
@@ -103,8 +104,8 @@ func (l *Adaptor) Connect() (err error) {
 	}
 
 	var builder strings.Builder
-	for _, p := range hatPorts() {
-		fmt.Fprintf(builder, "port %d ; select ;", int(p))
+	for id := range l.devices {
+		fmt.Fprintf(&builder, "port %d ; select ;", int(id))
 	}
 	builder.WriteString("echo 0\r")
 	log.Printf("Sending command: %s\n", builder.String())
@@ -131,6 +132,19 @@ func (l *Adaptor) Connect() (err error) {
 	return nil
 }
 
+func (l *Adaptor) registerDevice(portID LegoHatPortID, deviceClass DeviceClass) (registration *deviceRegistration) {
+	r := deviceRegistration{
+		id:         portID,
+		class:      deviceClass,
+		name:       deviceClass.String(),
+		toDevice:   make(chan []byte),
+		fromDevice: make(chan DeviceEvent),
+	}
+	l.devices[portID] = &r
+
+	return &r
+}
+
 func (l *Adaptor) Run(port *serial.Port, ready chan error) (err error) {
 	defer port.Close()
 
@@ -145,7 +159,11 @@ func (l *Adaptor) Run(port *serial.Port, ready chan error) (err error) {
 				if len(lineParts) < 2 {
 					return fmt.Errorf("unexpected line format with P prefix. should be P<id>: message but didn't have the ':' delimiter: %s", line)
 				}
-				portID := strings.TrimPrefix(lineParts[0], "P")
+				rawPortID := strings.TrimPrefix(lineParts[0], "P")
+				portID, err := strconv.Atoi(rawPortID)
+				if err != nil {
+					return err
+				}
 
 				message := strings.Trim(lineParts[1], " ")
 
@@ -158,6 +176,29 @@ func (l *Adaptor) Run(port *serial.Port, ready chan error) (err error) {
 					}
 
 					log.Printf("Device of type %d connected on port %s", deviceTypeID, portID)
+
+					if d, ok := l.devices[LegoHatPortID(portID)]; ok {
+						d.deviceType = DeviceType(deviceTypeID)
+						d.fromDevice <- DeviceEvent{
+							msgType: ConnectedMessage,
+						}
+					}
+				case strings.HasPrefix(message, disconnectedMessage):
+					log.Printf("Device disconnected on port %s", portID)
+
+					if d, ok := l.devices[LegoHatPortID(portID)]; ok {
+						d.fromDevice <- DeviceEvent{
+							msgType: DisconnectedMessage,
+						}
+					}
+				case strings.HasPrefix(message, timeoutMessage):
+					log.Printf("Device timeout on port %s", portID)
+
+					if d, ok := l.devices[LegoHatPortID(portID)]; ok {
+						d.fromDevice <- DeviceEvent{
+							msgType: TimeoutMessage,
+						}
+					}
 				}
 			}
 		case <-l.termination:

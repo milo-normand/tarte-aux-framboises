@@ -3,10 +3,31 @@ package legohat
 import "fmt"
 
 type Device struct {
-	ID        int
-	Name      string
-	Type      DeviceType
-	Listeners []chan []byte
+	ID   int
+	Type DeviceType
+}
+
+type deviceRegistration struct {
+	id         LegoHatPortID
+	class      DeviceClass
+	deviceType DeviceType
+	name       string
+	fromDevice chan DeviceEvent
+	toDevice   chan []byte
+}
+
+type DeviceMessageType string
+
+const (
+	ConnectedMessage    DeviceMessageType = "connected"
+	DisconnectedMessage DeviceMessageType = "disconnected"
+	TimeoutMessage      DeviceMessageType = "timeout"
+	DataMessage         DeviceMessageType = "data"
+)
+
+type DeviceEvent struct {
+	msgType DeviceMessageType
+	data    []byte
 }
 
 type DeviceType int

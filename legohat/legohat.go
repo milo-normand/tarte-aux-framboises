@@ -2,6 +2,8 @@ package legohat
 
 import (
 	_ "embed"
+	"fmt"
+	"log"
 
 	"gobot.io/x/gobot"
 )
@@ -13,10 +15,10 @@ var version string
 type LegoHatDriver struct {
 	name         string
 	Active       bool
-	DefaultState int
-	pin          string
 	halt         chan bool
 	connection   *Adaptor
+	registration *deviceRegistration
+
 	gobot.Eventer
 }
 
@@ -27,14 +29,15 @@ func hatPorts() (ports []LegoHatPortID) {
 // NewLegoMotorDriver returns a new LegoHatDriver
 func NewLegoMotorDriver(a *Adaptor, portID LegoHatPortID) *LegoHatDriver {
 	b := &LegoHatDriver{
-		name:         gobot.DefaultName("LegoHat"),
-		connection:   a,
-		Active:       false,
-		DefaultState: 0,
-		Eventer:      gobot.NewEventer(),
-		halt:         make(chan bool),
+		name:       gobot.DefaultName(fmt.Sprintf("LegoHat %s", Motor)),
+		connection: a,
+		Active:     false,
+		Eventer:    gobot.NewEventer(),
+		halt:       make(chan bool),
 	}
 
+	r := b.connection.registerDevice(portID, Motor)
+	b.registration = r
 	// b.AddEvent(ButtonPush)
 	// b.AddEvent(ButtonRelease)
 	// b.AddEvent(Error)
@@ -49,7 +52,16 @@ func NewLegoMotorDriver(a *Adaptor, portID LegoHatPortID) *LegoHatDriver {
 //	Release int - On button release
 //	Error error - On button error
 func (l *LegoHatDriver) Start() (err error) {
-	// TODO
+	log.Printf("Waiting for %s to connect on port %d...\n", Motor, l.registration.id)
+	for e := range l.registration.fromDevice {
+		if e.msgType == ConnectedMessage {
+			log.Printf("Device connected")
+			break
+		} else {
+			log.Printf("Received unexpected event: %s", e.msgType)
+		}
+	}
+
 	return nil
 }
 
