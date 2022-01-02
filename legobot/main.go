@@ -27,15 +27,16 @@ func main() {
 	log.Printf("Weather is %v\n", weather.Main)
 
 	r := raspi.NewAdaptor()
-	lego := legohat.NewLegoHatDriver(r)
+	hat := legohat.NewAdaptor()
+	motor := legohat.NewLegoMotorDriver(hat, legohat.PortA)
 
 	work := func() {
 		log.Printf("Started lego hat")
 	}
 
 	robot := gobot.NewRobot("legobot",
-		[]gobot.Connection{r},
-		[]gobot.Device{lego},
+		[]gobot.Connection{r, hat},
+		[]gobot.Device{motor},
 		work,
 	)
 

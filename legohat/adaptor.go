@@ -11,7 +11,6 @@ import (
 
 	"go.bug.st/serial"
 	"gobot.io/x/gobot"
-	"gobot.io/x/gobot/drivers/gpio"
 )
 
 const (
@@ -22,10 +21,10 @@ const (
 type LegoHatPortID int
 
 const (
-	PortOne   = LegoHatPortID(0)
-	PortTwo   = LegoHatPortID(1)
-	PortThree = LegoHatPortID(2)
-	PortFour  = LegoHatPortID(3)
+	PortA = LegoHatPortID(0)
+	PortB = LegoHatPortID(1)
+	PortC = LegoHatPortID(2)
+	PortD = LegoHatPortID(3)
 )
 
 type HatState string
@@ -57,10 +56,10 @@ type Config struct {
 
 // Adaptor represents a connection to a lego hat
 type Adaptor struct {
-	name        string
-	config      Config
-	devices     map[LegoHatPortID]*deviceRegistration
-	reader      gpio.DigitalReader
+	name    string
+	config  Config
+	devices map[LegoHatPortID]*deviceRegistration
+	//reader      gpio.DigitalReader
 	termination chan bool
 }
 
@@ -73,7 +72,7 @@ func WithSerialPath(serialPath string) Option {
 }
 
 // NewAdaptor returns a new Lego Hat Adaptor.
-func NewAdaptor(reader gpio.DigitalReader, opts ...Option) *Adaptor {
+func NewAdaptor(opts ...Option) *Adaptor {
 	config := Config{
 		serialPath: "/dev/serial0",
 	}
@@ -84,7 +83,6 @@ func NewAdaptor(reader gpio.DigitalReader, opts ...Option) *Adaptor {
 
 	return &Adaptor{
 		name:        gobot.DefaultName("LegoHat"),
-		reader:      reader,
 		config:      config,
 		termination: make(chan bool),
 	}
@@ -170,21 +168,22 @@ func (l *Adaptor) Run(port serial.Port, ready chan error) (err error) {
 				switch {
 				case strings.HasPrefix(message, connectedMessage):
 					rawDeviceType := strings.TrimPrefix(message, connectedMessage)
-					deviceTypeID, err := strconv.ParseInt(strings.Trim(rawDeviceType, " "), 16, 32)
+					deviceTypeVal, err := strconv.ParseInt(strings.Trim(rawDeviceType, " "), 16, 64)
 					if err != nil {
 						return err
 					}
 
-					log.Printf("Device of type %d connected on port %s", deviceTypeID, portID)
+					deviceType := DeviceType(deviceTypeVal)
+					log.Printf("Device of type %s connected on port %d", deviceType, portID)
 
 					if d, ok := l.devices[LegoHatPortID(portID)]; ok {
-						d.deviceType = DeviceType(deviceTypeID)
+						d.deviceType = deviceType
 						d.fromDevice <- DeviceEvent{
 							msgType: ConnectedMessage,
 						}
 					}
 				case strings.HasPrefix(message, disconnectedMessage):
-					log.Printf("Device disconnected on port %s", portID)
+					log.Printf("Device disconnected on port %d", portID)
 
 					if d, ok := l.devices[LegoHatPortID(portID)]; ok {
 						d.fromDevice <- DeviceEvent{
@@ -192,7 +191,7 @@ func (l *Adaptor) Run(port serial.Port, ready chan error) (err error) {
 						}
 					}
 				case strings.HasPrefix(message, timeoutMessage):
-					log.Printf("Device timeout on port %s", portID)
+					log.Printf("Device timeout on port %d", portID)
 
 					if d, ok := l.devices[LegoHatPortID(portID)]; ok {
 						d.fromDevice <- DeviceEvent{
@@ -202,11 +201,9 @@ func (l *Adaptor) Run(port serial.Port, ready chan error) (err error) {
 				}
 			}
 		case <-l.termination:
-			break
+			return nil
 		}
 	}
-
-	return nil
 }
 
 func ReadPort(port serial.Port, out chan string) {

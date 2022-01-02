@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"log"
+	"time"
 
 	"gobot.io/x/gobot"
 )
@@ -49,21 +50,37 @@ func NewLegoMotorDriver(a *Adaptor, portID LegoHatPortID) *LegoHatDriver {
 //	Error error - On button error
 func (l *LegoHatDriver) Start() (err error) {
 	log.Printf("Waiting for %s to connect on port %d...\n", Motor, l.registration.id)
-	for e := range l.registration.fromDevice {
-		if e.msgType == ConnectedMessage {
-			log.Printf("Device connected")
-			break
-		} else {
-			log.Printf("Received unexpected event: %s", e.msgType)
+
+	for {
+		select {
+		case e := <-l.registration.fromDevice:
+			if e.msgType != ConnectedMessage {
+				log.Printf("Device %s connected on port %d", l.registration.class, l.registration.id)
+				return nil
+			}
+		case <-time.After(5 * time.Second):
+			return fmt.Errorf("timed out waiting for connection of device %s on port %d", l.registration.class, l.registration.id)
 		}
 	}
-
-	return nil
 }
 
 // Halt releases the connection to the port
 func (l *LegoHatDriver) Halt() (err error) {
-	return nil
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; pwm ; coast ; off \r", l.registration.id))
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; select ; echo 0\r", l.registration.id))
+
+	defer close(l.registration.toDevice)
+
+	for {
+		select {
+		case e := <-l.registration.fromDevice:
+			if e.msgType != DisconnectedMessage {
+				return nil
+			}
+		case <-time.After(5 * time.Second):
+			return fmt.Errorf("timed out waiting to disconnect device %s on port %d", l.registration.class, l.registration.id)
+		}
+	}
 }
 
 // Name returns the ButtonDrivers name
@@ -72,5 +89,6 @@ func (l *LegoHatDriver) Name() string { return l.name }
 // SetName sets the ButtonDrivers name
 func (l *LegoHatDriver) SetName(n string) { l.name = n }
 
-// Pin returns the ButtonDrivers pin
 func (l *LegoHatDriver) Type() string { return l.registration.deviceType.String() }
+
+func (l *LegoHatDriver) Connection() string { return l.connection.(gobot.Connection) }
