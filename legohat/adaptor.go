@@ -58,6 +58,7 @@ type Config struct {
 type Adaptor struct {
 	name                 string
 	config               Config
+	port                 serial.Port
 	devices              map[LegoHatPortID]*deviceRegistration
 	terminateReading     chan bool
 	terminateDispatching chan bool
@@ -100,20 +101,19 @@ func (l *Adaptor) SetName(n string) { l.name = n }
 
 // Connect connects to the joystick
 func (l *Adaptor) Connect() (err error) {
-	port, err := initialize(l.config.serialPath, strings.Replace(version, "\n", "", -1))
+	l.port, err = initialize(l.config.serialPath, strings.Replace(version, "\n", "", -1))
 	if err != nil {
 		return err
 	}
 
-	ready := make(chan error)
-	go l.run(port, ready)
+	go l.run()
 
 	for _, d := range l.devices {
 		log.Printf("Starting dispatching routine for device on port %d...\n", d.id)
 		go l.dispatchInstructions(d.toDevice)
 	}
 
-	go l.writeInstructions(port)
+	go l.writeInstructions()
 
 	return nil
 }
@@ -140,14 +140,14 @@ func (l *Adaptor) dispatchInstructions(in chan []byte) {
 	log.Printf("Terminated dispatching go routine\n")
 }
 
-func (l *Adaptor) writeInstructions(port serial.Port) {
+func (l *Adaptor) writeInstructions() {
 	defer log.Printf("Terminated goroutine writing instructions\n")
 
 	for {
 		select {
 		case in := <-l.toWrite:
 			log.Printf("Writing to serial port %s:\n\t%s", l.config.serialPath, string(in))
-			port.Write(in)
+			l.port.Write(in)
 		case <-l.terminateDispatching:
 			log.Printf("Received termination signal to stop dispatching")
 			return
@@ -155,11 +155,9 @@ func (l *Adaptor) writeInstructions(port serial.Port) {
 	}
 }
 
-func (l *Adaptor) run(port serial.Port, ready chan error) (err error) {
-	defer port.Close()
-
+func (l *Adaptor) run() (err error) {
 	lines := make(chan string)
-	go ReadPort(port, lines)
+	go ReadPort(l.port, lines)
 
 	for {
 		select {
@@ -232,6 +230,8 @@ func ReadPort(port serial.Port, out chan string) {
 
 		out <- line
 	}
+
+	close(out)
 }
 
 // Finalize closes connection to the lego hat
@@ -250,6 +250,9 @@ func (l *Adaptor) Finalize() (err error) {
 	// if err != nil {
 	// 	return err
 	// }
+
+	// Closing serial port
+	l.port.Close()
 
 	l.terminateDispatching <- true
 	log.Printf("Sending signal to stop reading...\n")
