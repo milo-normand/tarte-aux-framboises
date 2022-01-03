@@ -12,28 +12,30 @@ import (
 //go:embed data/version
 var version string
 
-// LegoHatDriver Represents a lego hat driver
-type LegoHatDriver struct {
+// LegoHatMotorDriver Represents a lego hat motor driver
+type LegoHatMotorDriver struct {
 	name         string
 	Active       bool
 	halt         chan bool
-	connection   Adaptor
+	connection   gobot.Connection
+	adaptor      *Adaptor
 	registration *deviceRegistration
 
 	gobot.Eventer
 }
 
 // NewLegoMotorDriver returns a new LegoHatDriver
-func NewLegoMotorDriver(a Adaptor, portID LegoHatPortID) *LegoHatDriver {
-	b := &LegoHatDriver{
+func NewLegoMotorDriver(a *Adaptor, portID LegoHatPortID) *LegoHatMotorDriver {
+	b := &LegoHatMotorDriver{
 		name:       gobot.DefaultName(fmt.Sprintf("LegoHat %s", Motor)),
+		adaptor:    a,
 		connection: a,
 		Active:     false,
 		Eventer:    gobot.NewEventer(),
 		halt:       make(chan bool),
 	}
 
-	r := b.connection.registerDevice(portID, Motor)
+	r := b.adaptor.registerDevice(portID, Motor)
 	b.registration = r
 	// b.AddEvent(ButtonPush)
 	// b.AddEvent(ButtonRelease)
@@ -42,13 +44,8 @@ func NewLegoMotorDriver(a Adaptor, portID LegoHatPortID) *LegoHatDriver {
 	return b
 }
 
-// Start starts the LegoHatDriver
-
-// Emits the Events:
-// 	Push int - On button push
-//	Release int - On button release
-//	Error error - On button error
-func (l *LegoHatDriver) Start() (err error) {
+// Start starts the LegoHatMotorDriver
+func (l *LegoHatMotorDriver) Start() (err error) {
 	log.Printf("Waiting for %s to connect on port %d...\n", Motor, l.registration.id)
 
 	for {
@@ -65,7 +62,7 @@ func (l *LegoHatDriver) Start() (err error) {
 }
 
 // Halt releases the connection to the port
-func (l *LegoHatDriver) Halt() (err error) {
+func (l *LegoHatMotorDriver) Halt() (err error) {
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; pwm ; coast ; off \r", l.registration.id))
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; select ; echo 0\r", l.registration.id))
 
@@ -84,11 +81,11 @@ func (l *LegoHatDriver) Halt() (err error) {
 }
 
 // Name returns the ButtonDrivers name
-func (l *LegoHatDriver) Name() string { return l.name }
+func (l *LegoHatMotorDriver) Name() string { return l.name }
 
 // SetName sets the ButtonDrivers name
-func (l *LegoHatDriver) SetName(n string) { l.name = n }
+func (l *LegoHatMotorDriver) SetName(n string) { l.name = n }
 
-func (l *LegoHatDriver) Type() string { return l.registration.deviceType.String() }
+func (l *LegoHatMotorDriver) Type() string { return l.registration.deviceType.String() }
 
-func (l *LegoHatDriver) Connection() Adaptor { return l.connection }
+func (l *LegoHatMotorDriver) Connection() gobot.Connection { return l.connection }
