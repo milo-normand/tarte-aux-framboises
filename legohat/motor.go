@@ -74,19 +74,9 @@ func (l *LegoHatMotorDriver) Halt() (err error) {
 
 	close(l.registration.toDevice)
 
-	log.Printf("Waiting for disconnection or timeout...\n")
-	for {
-		select {
-		case e := <-l.registration.fromDevice:
-			if e.msgType != DisconnectedMessage {
-				log.Printf("Disconnected device %s successfully", l.registration.class)
-				return nil
-			}
-		case <-time.After(5 * time.Second):
-			log.Printf("timed out after 5 seconds...")
-			return fmt.Errorf("timed out waiting to disconnect device %s on port %d", l.registration.class, l.registration.id)
-		}
-	}
+	time.Sleep(10 * time.Millisecond)
+	log.Printf("Waiting for 10 millis for shutdown write to complete...\n")
+	return nil
 }
 
 // Name returns the ButtonDrivers name
