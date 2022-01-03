@@ -136,9 +136,13 @@ func (l *Adaptor) dispatchInstructions(in chan []byte) {
 		log.Printf("Dispatching message to write: %s...\n", string(i))
 		l.toWrite <- i
 	}
+
+	log.Printf("Terminated dispatching go routine\n")
 }
 
 func (l *Adaptor) writeInstructions(port serial.Port) {
+	defer log.Printf("Terminated goroutine writing instructions\n")
+
 	for {
 		select {
 		case in := <-l.toWrite:
@@ -146,7 +150,7 @@ func (l *Adaptor) writeInstructions(port serial.Port) {
 			port.Write(in)
 		case <-l.terminateDispatching:
 			log.Printf("Received termination signal to stop dispatching")
-			break
+			return
 		}
 	}
 }
@@ -251,6 +255,7 @@ func (l *Adaptor) Finalize() (err error) {
 	}
 
 	l.terminateDispatching <- true
+	log.Printf("Sending signal to stop reading...\n")
 	l.terminateReading <- true
 
 	return nil
