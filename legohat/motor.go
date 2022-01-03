@@ -98,5 +98,5 @@ func (l *LegoHatMotorDriver) TurnOn(speed int) (err error) {
 }
 
 func (l *LegoHatMotorDriver) TurnOff() {
-	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; coast\r", l.registration.id))
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; select %d ; coast\r", l.registration.id, l.registration.id))
 }
