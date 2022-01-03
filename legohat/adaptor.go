@@ -163,6 +163,9 @@ func (l *Adaptor) run(port serial.Port, ready chan error) (err error) {
 
 	for {
 		select {
+		case <-l.terminateReading:
+			log.Printf("Received termination signal...\n")
+			return nil
 		case line := <-lines:
 			log.Printf("Got line: %s\n", line)
 			if strings.HasPrefix(line, "P") {
@@ -214,9 +217,6 @@ func (l *Adaptor) run(port serial.Port, ready chan error) (err error) {
 					}
 				}
 			}
-		case <-l.terminateReading:
-			log.Printf("Received termination signal...\n")
-			return nil
 		}
 	}
 }

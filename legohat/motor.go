@@ -69,7 +69,7 @@ func (l *LegoHatMotorDriver) Start() (err error) {
 func (l *LegoHatMotorDriver) Halt() (err error) {
 	log.Printf("Halting %s (%s)...", l.registration.class, l.registration.deviceType)
 
-	l.TurnOff()
+	l.TurnOn(0)
 
 	close(l.registration.toDevice)
 
@@ -98,5 +98,5 @@ func (l *LegoHatMotorDriver) TurnOn(speed int) (err error) {
 }
 
 func (l *LegoHatMotorDriver) TurnOff() {
-	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; select %d ; coast\r", l.registration.id, l.registration.id))
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; off\r", l.registration.id))
 }
