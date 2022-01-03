@@ -55,7 +55,7 @@ func (l *LegoHatMotorDriver) Start() (err error) {
 		select {
 		case e := <-l.registration.fromDevice:
 			log.Printf("Received message on port %d: %v\n", l.registration.id, e)
-			if e.msgType != ConnectedMessage {
+			if e.msgType == ConnectedMessage {
 				log.Printf("Device %s connected on port %d", l.registration.class, l.registration.id)
 				return nil
 			}
