@@ -41,14 +41,15 @@ func main() {
 		work,
 	)
 
-	signalChan := make(chan os.Signal, 1)
+	signalChan := make(chan os.Signal)
 	cleanupDone := make(chan struct{})
 	signal.Notify(signalChan, os.Interrupt)
 	go func() {
 		<-signalChan
-		fmt.Println("Received an interrupt, stopping robot...")
+		log.Println("Received an interrupt, stopping robot...")
 
 		robot.Stop()
+		log.Printf("Robot stopped\n")
 		cleanupDone <- struct{}{}
 	}()
 

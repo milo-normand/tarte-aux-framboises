@@ -63,12 +63,14 @@ func (l *LegoHatMotorDriver) Start() (err error) {
 
 // Halt releases the connection to the port
 func (l *LegoHatMotorDriver) Halt() (err error) {
-	log.Printf("Halting device %s...", l.registration.class)
+	log.Printf("Halting %s (%s)...", l.registration.class, l.registration.deviceType)
+
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; pwm ; coast ; off \r", l.registration.id))
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; select ; echo 0\r", l.registration.id))
 
-	defer close(l.registration.toDevice)
+	//defer close(l.registration.toDevice)
 
+	log.Printf("Waiting for disconnection or timeout...\n")
 	for {
 		select {
 		case e := <-l.registration.fromDevice:
@@ -77,6 +79,7 @@ func (l *LegoHatMotorDriver) Halt() (err error) {
 				return nil
 			}
 		case <-time.After(5 * time.Second):
+			log.Printf("timed out after 5 seconds...")
 			return fmt.Errorf("timed out waiting to disconnect device %s on port %d", l.registration.class, l.registration.id)
 		}
 	}
