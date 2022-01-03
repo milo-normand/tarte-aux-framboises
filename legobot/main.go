@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/signal"
 
 	"github.com/briandowns/openweathermap"
 	"github.com/milo-normand/tarte-aux-framboises/legohat"
@@ -41,18 +40,5 @@ func main() {
 		work,
 	)
 
-	signalChan := make(chan os.Signal)
-	cleanupDone := make(chan struct{})
-	signal.Notify(signalChan, os.Interrupt)
-	go func() {
-		<-signalChan
-		log.Println("Received an interrupt, stopping robot...")
-
-		robot.Stop()
-		log.Printf("Robot stopped\n")
-		cleanupDone <- struct{}{}
-	}()
-
 	robot.Start()
-	<-cleanupDone
 }
