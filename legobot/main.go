@@ -32,6 +32,10 @@ func main() {
 
 	work := func() {
 		log.Printf("Started lego hat")
+		err := motor.TurnOn(10)
+		if err != nil {
+			log.Printf("error turning on motor: %s", err.Error())
+		}
 	}
 
 	robot := gobot.NewRobot("legobot",

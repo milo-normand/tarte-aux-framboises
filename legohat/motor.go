@@ -88,3 +88,16 @@ func (l *LegoHatMotorDriver) SetName(n string) { l.name = n }
 func (l *LegoHatMotorDriver) Type() string { return l.registration.deviceType.String() }
 
 func (l *LegoHatMotorDriver) Connection() gobot.Connection { return l.connection }
+
+func (l *LegoHatMotorDriver) TurnOn(speed int) (err error) {
+	if speed < -100 || speed > 100 {
+		return fmt.Errorf("invalid speed, must be between -100 and 100 but was %d", speed)
+	}
+
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; select 0 ; pid %d 0 0 s1 1 0 0.003 0.01 0 100; set %d\r", l.registration.id, l.registration.id, speed))
+	return nil
+}
+
+func (l *LegoHatMotorDriver) TurnOff() {
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; coast\r", l.registration.id))
+}
