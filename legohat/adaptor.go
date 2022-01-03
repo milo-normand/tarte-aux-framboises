@@ -156,6 +156,7 @@ func (l *Adaptor) registerDevice(portID LegoHatPortID, deviceClass DeviceClass) 
 
 func (l *Adaptor) dispatchInstructions(in chan []byte) {
 	for i := range in {
+		log.Printf("Dispatching message to write: %s...\n", string(i))
 		l.toWrite <- i
 	}
 }
