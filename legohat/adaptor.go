@@ -246,6 +246,10 @@ func (l *Adaptor) Finalize() (err error) {
 	// 	return err
 	// }
 
+	for _, d := range l.devices {
+		close(d.fromDevice)
+	}
+
 	l.terminateDispatching <- true
 	l.terminateReading <- true
 
