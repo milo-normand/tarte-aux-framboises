@@ -105,23 +105,6 @@ func (l *Adaptor) Connect() (err error) {
 		return err
 	}
 
-	var builder strings.Builder
-	for id := range l.devices {
-		fmt.Fprintf(&builder, "port %d ; select ;", int(id))
-	}
-	builder.WriteString("echo 0\r")
-	log.Printf("Sending command: %s\n", builder.String())
-
-	_, err = port.Write([]byte(builder.String()))
-	if err != nil {
-		return err
-	}
-
-	_, err = port.Write([]byte("list\r"))
-	if err != nil {
-		return err
-	}
-
 	ready := make(chan error)
 	go l.run(port, ready)
 
