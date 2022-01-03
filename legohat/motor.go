@@ -72,6 +72,7 @@ func (l *LegoHatMotorDriver) Halt() (err error) {
 		select {
 		case e := <-l.registration.fromDevice:
 			if e.msgType != DisconnectedMessage {
+				log.Printf("Disconnected device %s successfully", l.registration.class)
 				return nil
 			}
 		case <-time.After(5 * time.Second):
