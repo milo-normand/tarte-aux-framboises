@@ -162,6 +162,7 @@ func (l *Adaptor) run(port serial.Port, ready chan error) (err error) {
 	go ReadPort(port, lines)
 
 	for {
+		log.Printf("Looping for termination or new message...\n")
 		select {
 		case line := <-lines:
 			if strings.HasPrefix(line, "P") {
