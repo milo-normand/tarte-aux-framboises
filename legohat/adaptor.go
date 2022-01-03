@@ -254,6 +254,7 @@ func (l *Adaptor) Finalize() (err error) {
 	l.terminateDispatching <- true
 	log.Printf("Sending signal to stop reading...\n")
 	l.terminateReading <- true
+	log.Printf("Terminated reading go routine")
 
 	for _, d := range l.devices {
 		close(d.fromDevice)
