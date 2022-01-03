@@ -87,7 +87,7 @@ func NewAdaptor(opts ...Option) *Adaptor {
 		name:                 gobot.DefaultName("LegoHat"),
 		config:               config,
 		devices:              make(map[LegoHatPortID]*deviceRegistration),
-		terminateReading:     make(chan bool),
+		terminateReading:     make(chan bool, 1),
 		terminateDispatching: make(chan bool),
 		toWrite:              make(chan []byte),
 	}
