@@ -125,12 +125,6 @@ func (l *Adaptor) Connect() (err error) {
 	ready := make(chan error)
 	go l.run(port, ready)
 
-	err = <-ready
-
-	if err != nil {
-		return err
-	}
-
 	for _, d := range l.devices {
 		log.Printf("Starting dispatching routine for device on port %d...\n", d.id)
 		go l.dispatchInstructions(d.toDevice)
