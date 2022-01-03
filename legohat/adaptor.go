@@ -201,6 +201,7 @@ func (l *Adaptor) Run(port serial.Port, ready chan error) (err error) {
 				}
 			}
 		case <-l.termination:
+			log.Printf("Received termination signal...\n")
 			return nil
 		}
 	}
@@ -231,9 +232,10 @@ func (l *Adaptor) Finalize() (err error) {
 	// }
 
 	// Return the first error encounted on all devices close, if any
-	if err != nil {
-		return err
-	}
+	log.Printf("Finalizing adaptor\n")
+	// if err != nil {
+	// 	return err
+	// }
 
 	l.termination <- true
 

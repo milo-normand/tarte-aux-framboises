@@ -63,6 +63,7 @@ func (l *LegoHatMotorDriver) Start() (err error) {
 
 // Halt releases the connection to the port
 func (l *LegoHatMotorDriver) Halt() (err error) {
+	log.Printf("Halting device %s...", l.registration.class)
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; pwm ; coast ; off \r", l.registration.id))
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; select ; echo 0\r", l.registration.id))
 
