@@ -246,8 +246,8 @@ func (l *Adaptor) Finalize() (err error) {
 	// 	return err
 	// }
 
-	l.terminateReading <- true
 	l.terminateDispatching <- true
+	l.terminateReading <- true
 
 	return nil
 }
