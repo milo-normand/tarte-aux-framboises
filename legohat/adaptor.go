@@ -60,7 +60,6 @@ type Adaptor struct {
 	config               Config
 	port                 serial.Port
 	devices              map[LegoHatPortID]*deviceRegistration
-	terminateReading     chan bool
 	terminateDispatching chan bool
 	toWrite              chan []byte
 }
@@ -87,7 +86,6 @@ func NewAdaptor(opts ...Option) *Adaptor {
 		name:                 gobot.DefaultName("LegoHat"),
 		config:               config,
 		devices:              make(map[LegoHatPortID]*deviceRegistration),
-		terminateReading:     make(chan bool, 1),
 		terminateDispatching: make(chan bool),
 		toWrite:              make(chan []byte),
 	}
@@ -159,64 +157,62 @@ func (l *Adaptor) run() (err error) {
 	lines := make(chan string)
 	go ReadPort(l.port, lines)
 
-	for {
-		select {
-		case <-l.terminateReading:
-			log.Printf("Received termination signal...\n")
-			return nil
-		case line := <-lines:
-			log.Printf("Got line: %s\n", line)
-			if strings.HasPrefix(line, "P") {
-				lineParts := strings.Split(line, ":")
-				if len(lineParts) < 2 {
-					return fmt.Errorf("unexpected line format with P prefix. should be P<id>: message but didn't have the ':' delimiter: %s", line)
-				}
-				rawPortID := strings.TrimPrefix(lineParts[0], "P")
-				portID, err := strconv.Atoi(rawPortID)
+	for line := range lines {
+
+		log.Printf("Got line: %s\n", line)
+		if strings.HasPrefix(line, "P") {
+			lineParts := strings.Split(line, ":")
+			if len(lineParts) < 2 {
+				return fmt.Errorf("unexpected line format with P prefix. should be P<id>: message but didn't have the ':' delimiter: %s", line)
+			}
+			rawPortID := strings.TrimPrefix(lineParts[0], "P")
+			portID, err := strconv.Atoi(rawPortID)
+			if err != nil {
+				return err
+			}
+
+			message := strings.Trim(lineParts[1], " ")
+
+			switch {
+			case strings.HasPrefix(message, connectedMessage):
+				rawDeviceType := strings.TrimPrefix(message, connectedMessage)
+				deviceTypeVal, err := strconv.ParseInt(strings.Trim(rawDeviceType, " "), 16, 64)
 				if err != nil {
 					return err
 				}
 
-				message := strings.Trim(lineParts[1], " ")
+				deviceType := DeviceType(deviceTypeVal)
+				log.Printf("Device of type %s connected on port %d", deviceType, portID)
 
-				switch {
-				case strings.HasPrefix(message, connectedMessage):
-					rawDeviceType := strings.TrimPrefix(message, connectedMessage)
-					deviceTypeVal, err := strconv.ParseInt(strings.Trim(rawDeviceType, " "), 16, 64)
-					if err != nil {
-						return err
+				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
+					log.Printf("Sending message [%s] to listener %v...\n", ConnectedMessage, d)
+					d.deviceType = deviceType
+					d.fromDevice <- DeviceEvent{
+						msgType: ConnectedMessage,
 					}
+				}
+			case strings.HasPrefix(message, disconnectedMessage):
+				log.Printf("Device disconnected on port %d", portID)
 
-					deviceType := DeviceType(deviceTypeVal)
-					log.Printf("Device of type %s connected on port %d", deviceType, portID)
-
-					if d, ok := l.devices[LegoHatPortID(portID)]; ok {
-						log.Printf("Sending message [%s] to listener %v...\n", ConnectedMessage, d)
-						d.deviceType = deviceType
-						d.fromDevice <- DeviceEvent{
-							msgType: ConnectedMessage,
-						}
+				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
+					d.fromDevice <- DeviceEvent{
+						msgType: DisconnectedMessage,
 					}
-				case strings.HasPrefix(message, disconnectedMessage):
-					log.Printf("Device disconnected on port %d", portID)
+				}
+			case strings.HasPrefix(message, timeoutMessage):
+				log.Printf("Device timeout on port %d", portID)
 
-					if d, ok := l.devices[LegoHatPortID(portID)]; ok {
-						d.fromDevice <- DeviceEvent{
-							msgType: DisconnectedMessage,
-						}
-					}
-				case strings.HasPrefix(message, timeoutMessage):
-					log.Printf("Device timeout on port %d", portID)
-
-					if d, ok := l.devices[LegoHatPortID(portID)]; ok {
-						d.fromDevice <- DeviceEvent{
-							msgType: TimeoutMessage,
-						}
+				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
+					d.fromDevice <- DeviceEvent{
+						msgType: TimeoutMessage,
 					}
 				}
 			}
 		}
 	}
+
+	log.Printf("Terminated reading on serial port\n")
+	return nil
 }
 
 func ReadPort(port serial.Port, out chan string) {
@@ -256,8 +252,6 @@ func (l *Adaptor) Finalize() (err error) {
 
 	l.terminateDispatching <- true
 	log.Printf("Sending signal to stop reading...\n")
-	l.terminateReading <- true
-	log.Printf("Terminated reading go routine")
 
 	for _, d := range l.devices {
 		close(d.fromDevice)
