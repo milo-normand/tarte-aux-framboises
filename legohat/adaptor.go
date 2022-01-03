@@ -280,6 +280,7 @@ func initialize(devicePath string, version string) (port serial.Port, err error)
 			if versionParts[0] == version {
 				state = firmwareState
 				detectedVersion = versionParts[0]
+				log.Printf("Correct version detected %s", detectedVersion)
 				break
 			}
 
