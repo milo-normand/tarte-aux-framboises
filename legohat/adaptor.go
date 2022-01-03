@@ -56,10 +56,12 @@ type Config struct {
 
 // Adaptor represents a connection to a lego hat
 type Adaptor struct {
-	name        string
-	config      Config
-	devices     map[LegoHatPortID]*deviceRegistration
-	termination chan bool
+	name                 string
+	config               Config
+	devices              map[LegoHatPortID]*deviceRegistration
+	terminateReading     chan bool
+	terminateDispatching chan bool
+	toWrite              chan []byte
 }
 
 type Option func(c *Config)
@@ -81,10 +83,12 @@ func NewAdaptor(opts ...Option) *Adaptor {
 	}
 
 	return &Adaptor{
-		name:        gobot.DefaultName("LegoHat"),
-		config:      config,
-		devices:     make(map[LegoHatPortID]*deviceRegistration),
-		termination: make(chan bool),
+		name:                 gobot.DefaultName("LegoHat"),
+		config:               config,
+		devices:              make(map[LegoHatPortID]*deviceRegistration),
+		terminateReading:     make(chan bool),
+		terminateDispatching: make(chan bool),
+		toWrite:              make(chan []byte),
 	}
 }
 
@@ -119,13 +123,19 @@ func (l *Adaptor) Connect() (err error) {
 	}
 
 	ready := make(chan error)
-	go l.Run(port, ready)
+	go l.run(port, ready)
 
 	err = <-ready
 
 	if err != nil {
 		return err
 	}
+
+	for _, d := range l.devices {
+		go l.dispatchInstructions(d.toDevice)
+	}
+
+	go l.writeInstructions(port)
 
 	return nil
 }
@@ -143,7 +153,26 @@ func (l *Adaptor) registerDevice(portID LegoHatPortID, deviceClass DeviceClass) 
 	return &r
 }
 
-func (l *Adaptor) Run(port serial.Port, ready chan error) (err error) {
+func (l *Adaptor) dispatchInstructions(in chan []byte) {
+	for i := range in {
+		l.toWrite <- i
+	}
+}
+
+func (l *Adaptor) writeInstructions(port serial.Port) {
+	for {
+		select {
+		case in := <-l.toWrite:
+			log.Printf("Writing %s to serial port %s", string(in), l.config.serialPath)
+			port.Write(in)
+		case <-l.terminateDispatching:
+			log.Printf("Received termination signal to stop dispatching")
+			break
+		}
+	}
+}
+
+func (l *Adaptor) run(port serial.Port, ready chan error) (err error) {
 	defer port.Close()
 
 	lines := make(chan string)
@@ -200,7 +229,7 @@ func (l *Adaptor) Run(port serial.Port, ready chan error) (err error) {
 					}
 				}
 			}
-		case <-l.termination:
+		case <-l.terminateReading:
 			log.Printf("Received termination signal...\n")
 			return nil
 		}
@@ -237,7 +266,8 @@ func (l *Adaptor) Finalize() (err error) {
 	// 	return err
 	// }
 
-	l.termination <- true
+	l.terminateReading <- true
+	l.terminateDispatching <- true
 
 	return nil
 }

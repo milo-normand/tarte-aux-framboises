@@ -68,7 +68,7 @@ func (l *LegoHatMotorDriver) Halt() (err error) {
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; pwm ; coast ; off \r", l.registration.id))
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; select ; echo 0\r", l.registration.id))
 
-	//defer close(l.registration.toDevice)
+	close(l.registration.toDevice)
 
 	log.Printf("Waiting for disconnection or timeout...\n")
 	for {
