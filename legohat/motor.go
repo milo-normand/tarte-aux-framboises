@@ -49,7 +49,7 @@ func (l *LegoHatMotorDriver) Start() (err error) {
 	log.Printf("Waiting for %s to connect on port %d...\n", Motor, l.registration.id)
 
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; select ; echo 0\r", l.registration.id))
-)
+
 	for {
 		select {
 		case e := <-l.registration.fromDevice:
