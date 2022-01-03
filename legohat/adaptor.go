@@ -202,7 +202,7 @@ func (l *Adaptor) run(port serial.Port, ready chan error) (err error) {
 					log.Printf("Device of type %s connected on port %d", deviceType, portID)
 
 					if d, ok := l.devices[LegoHatPortID(portID)]; ok {
-						log.Printf("Sending message [%s] to listener on port %d...\n", ConnectedMessage, portID)
+						log.Printf("Sending message [%s] to listener %v...\n", ConnectedMessage, d)
 						d.deviceType = deviceType
 						d.fromDevice <- DeviceEvent{
 							msgType: ConnectedMessage,
