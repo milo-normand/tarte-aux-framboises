@@ -124,7 +124,7 @@ func (l *Adaptor) registerDevice(portID LegoHatPortID, deviceClass DeviceClass) 
 		class:      deviceClass,
 		name:       deviceClass.String(),
 		toDevice:   make(chan []byte),
-		fromDevice: make(chan DeviceEvent, 1),
+		fromDevice: make(chan DeviceEvent),
 	}
 	l.devices[portID] = &r
 
@@ -162,9 +162,9 @@ func (l *Adaptor) run(port serial.Port, ready chan error) (err error) {
 	go ReadPort(port, lines)
 
 	for {
-		log.Printf("Looping for termination or new message...\n")
 		select {
 		case line := <-lines:
+			log.Printf("Got line: %s\n", line)
 			if strings.HasPrefix(line, "P") {
 				lineParts := strings.Split(line, ":")
 				if len(lineParts) < 2 {
