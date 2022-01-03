@@ -56,10 +56,9 @@ type Config struct {
 
 // Adaptor represents a connection to a lego hat
 type Adaptor struct {
-	name    string
-	config  Config
-	devices map[LegoHatPortID]*deviceRegistration
-	//reader      gpio.DigitalReader
+	name        string
+	config      Config
+	devices     map[LegoHatPortID]*deviceRegistration
 	termination chan bool
 }
 
@@ -84,6 +83,7 @@ func NewAdaptor(opts ...Option) *Adaptor {
 	return &Adaptor{
 		name:        gobot.DefaultName("LegoHat"),
 		config:      config,
+		devices:     make(map[LegoHatPortID]*deviceRegistration),
 		termination: make(chan bool),
 	}
 }
