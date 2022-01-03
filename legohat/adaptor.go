@@ -124,7 +124,7 @@ func (l *Adaptor) registerDevice(portID LegoHatPortID, deviceClass DeviceClass) 
 		class:      deviceClass,
 		name:       deviceClass.String(),
 		toDevice:   make(chan []byte),
-		fromDevice: make(chan DeviceEvent),
+		fromDevice: make(chan DeviceEvent, 1),
 	}
 	l.devices[portID] = &r
 
@@ -251,13 +251,13 @@ func (l *Adaptor) Finalize() (err error) {
 	// 	return err
 	// }
 
-	for _, d := range l.devices {
-		close(d.fromDevice)
-	}
-
 	l.terminateDispatching <- true
 	log.Printf("Sending signal to stop reading...\n")
 	l.terminateReading <- true
+
+	for _, d := range l.devices {
+		close(d.fromDevice)
+	}
 
 	return nil
 }
