@@ -159,7 +159,7 @@ func (l *Adaptor) writeInstructions(port serial.Port) {
 	for {
 		select {
 		case in := <-l.toWrite:
-			log.Printf("Writing %s to serial port %s", string(in), l.config.serialPath)
+			log.Printf("Writing to serial port %s:\n\t%s", l.config.serialPath, string(in))
 			port.Write(in)
 		case <-l.terminateDispatching:
 			log.Printf("Received termination signal to stop dispatching")
@@ -202,6 +202,7 @@ func (l *Adaptor) run(port serial.Port, ready chan error) (err error) {
 					log.Printf("Device of type %s connected on port %d", deviceType, portID)
 
 					if d, ok := l.devices[LegoHatPortID(portID)]; ok {
+						log.Printf("Sending message [%s] to listener on port %d...\n", ConnectedMessage, portID)
 						d.deviceType = deviceType
 						d.fromDevice <- DeviceEvent{
 							msgType: ConnectedMessage,
