@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
+	_ "net/http"
+	_ "net/http/pprof"
 	"os"
 
 	"github.com/briandowns/openweathermap"
@@ -23,6 +26,10 @@ func main() {
 		fmt.Printf("Unable to get weather from open weather: %s", err.Error())
 		os.Exit(-1)
 	}
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	log.Printf("Weather is %v\n", weather.Main)
 
