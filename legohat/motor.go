@@ -69,7 +69,7 @@ func (l *LegoHatMotorDriver) Start() (err error) {
 func (l *LegoHatMotorDriver) Halt() (err error) {
 	log.Printf("Halting %s (%s)...", l.registration.class, l.registration.deviceType)
 
-	l.TurnOn(0)
+	l.TurnOff()
 
 	close(l.registration.toDevice)
 
