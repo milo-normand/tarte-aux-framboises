@@ -47,7 +47,7 @@ const (
 	spikePrimeMediumMotorDevice      DeviceType = 0x30 // spikePrimeMediumMotor
 	spikePrimeLargeMotorDevice       DeviceType = 0x31 // spikePrimeLargeMotor
 	spikeEssentialAngularMotorDevice DeviceType = 0x41 // spikeEssentialAngularMotor
-	motor75Device                    DeviceType = 0x4B // motor
+	mindstormMotor                   DeviceType = 0x4B // mindstormMotor
 	motor76Device                    DeviceType = 0x4C // motor
 )
 
@@ -84,7 +84,7 @@ func getDeviceClassForType(deviceType DeviceType) (class DeviceClass, err error)
 		return ForceSensor, nil
 	case matrixDevice:
 		return Matrix, nil
-	case mediumLinearMotorDevice, technicLargeMotorDevice, technicXLargeMotorDevice, spikePrimeMediumMotorDevice, spikePrimeLargeMotorDevice, spikeEssentialAngularMotorDevice, motor75Device, motor76Device:
+	case mediumLinearMotorDevice, technicLargeMotorDevice, technicXLargeMotorDevice, spikePrimeMediumMotorDevice, spikePrimeLargeMotorDevice, spikeEssentialAngularMotorDevice, mindstormMotor, motor76Device:
 		return Motor, nil
 	}
 

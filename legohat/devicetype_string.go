@@ -22,7 +22,7 @@ func _() {
 	_ = x[spikePrimeMediumMotorDevice-48]
 	_ = x[spikePrimeLargeMotorDevice-49]
 	_ = x[spikeEssentialAngularMotorDevice-65]
-	_ = x[motor75Device-75]
+	_ = x[mindstormMotor-75]
 	_ = x[motor76Device-76]
 }
 
@@ -32,7 +32,7 @@ const (
 	_DeviceType_name_2 = "colorDistancemediumLinearMotor"
 	_DeviceType_name_3 = "technicLargeMotortechnicXLargeMotorspikePrimeMediumMotorspikePrimeLargeMotor"
 	_DeviceType_name_4 = "colorSensordistanceSensorforceSensormatrixspikeEssentialAngularMotor"
-	_DeviceType_name_5 = "motormotor"
+	_DeviceType_name_5 = "mindstormMotormotor"
 )
 
 var (
@@ -40,7 +40,7 @@ var (
 	_DeviceType_index_2 = [...]uint8{0, 13, 30}
 	_DeviceType_index_3 = [...]uint8{0, 17, 35, 56, 76}
 	_DeviceType_index_4 = [...]uint8{0, 11, 25, 36, 42, 68}
-	_DeviceType_index_5 = [...]uint8{0, 5, 10}
+	_DeviceType_index_5 = [...]uint8{0, 14, 19}
 )
 
 func (i DeviceType) String() string {
