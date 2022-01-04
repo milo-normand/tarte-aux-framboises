@@ -16,12 +16,12 @@ func _() {
 	_ = x[distanceSensorDevice-62]
 	_ = x[forceSensorDevice-63]
 	_ = x[matrixDevice-64]
-	_ = x[motor38Device-38]
-	_ = x[motor46Device-46]
-	_ = x[motor47Device-47]
-	_ = x[motor48Device-48]
-	_ = x[motor49Device-49]
-	_ = x[motor65Device-65]
+	_ = x[mediumLinearMotorDevice-38]
+	_ = x[technicLargeMotorDevice-46]
+	_ = x[technicXLargeMotorDevice-47]
+	_ = x[spikePrimeMediumMotorDevice-48]
+	_ = x[spikePrimeLargeMotorDevice-49]
+	_ = x[spikeEssentialAngularMotorDevice-65]
 	_ = x[motor75Device-75]
 	_ = x[motor76Device-76]
 }
@@ -29,17 +29,17 @@ func _() {
 const (
 	_DeviceType_name_0 = "light"
 	_DeviceType_name_1 = "tiltSensormotionSensor"
-	_DeviceType_name_2 = "colorDistancemotor"
-	_DeviceType_name_3 = "motormotormotormotor"
-	_DeviceType_name_4 = "colorSensordistanceSensorforceSensormotormotor"
+	_DeviceType_name_2 = "colorDistancemediumLinearMotor"
+	_DeviceType_name_3 = "technicLargeMotortechnicXLargeMotorspikePrimeMediumMotorspikePrimeLargeMotor"
+	_DeviceType_name_4 = "colorSensordistanceSensorforceSensormatrixspikeEssentialAngularMotor"
 	_DeviceType_name_5 = "motormotor"
 )
 
 var (
 	_DeviceType_index_1 = [...]uint8{0, 10, 22}
-	_DeviceType_index_2 = [...]uint8{0, 13, 18}
-	_DeviceType_index_3 = [...]uint8{0, 5, 10, 15, 20}
-	_DeviceType_index_4 = [...]uint8{0, 11, 25, 36, 41, 46}
+	_DeviceType_index_2 = [...]uint8{0, 13, 30}
+	_DeviceType_index_3 = [...]uint8{0, 17, 35, 56, 76}
+	_DeviceType_index_4 = [...]uint8{0, 11, 25, 36, 42, 68}
 	_DeviceType_index_5 = [...]uint8{0, 5, 10}
 )
 

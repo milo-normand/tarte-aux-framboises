@@ -33,22 +33,22 @@ type DeviceEvent struct {
 type DeviceType int
 
 const (
-	lightDevice               DeviceType = 8  // light
-	tiltSensorDevice          DeviceType = 34 // tiltSensor
-	motionSensorDevice        DeviceType = 35 // motionSensor
-	colorDistanceSensorDevice DeviceType = 37 // colorDistance
-	colorSensorDevice         DeviceType = 61 // colorSensor
-	distanceSensorDevice      DeviceType = 62 // distanceSensor
-	forceSensorDevice         DeviceType = 63 // forceSensor
-	matrixDevice              DeviceType = 64 // motor
-	motor38Device             DeviceType = 38 // motor
-	motor46Device             DeviceType = 46 // motor
-	motor47Device             DeviceType = 47 // motor
-	motor48Device             DeviceType = 48 // motor
-	motor49Device             DeviceType = 49 // motor
-	motor65Device             DeviceType = 65 // motor
-	motor75Device             DeviceType = 75 // motor
-	motor76Device             DeviceType = 76 // motor
+	lightDevice                      DeviceType = 0x08 // light
+	tiltSensorDevice                 DeviceType = 0x22 // tiltSensor
+	motionSensorDevice               DeviceType = 0x23 // motionSensor
+	colorDistanceSensorDevice        DeviceType = 0x25 // colorDistance
+	colorSensorDevice                DeviceType = 0x3d // colorSensor
+	distanceSensorDevice             DeviceType = 0x3e // distanceSensor
+	forceSensorDevice                DeviceType = 0x3f // forceSensor
+	matrixDevice                     DeviceType = 0x40 // matrix
+	mediumLinearMotorDevice          DeviceType = 0x26 // mediumLinearMotor
+	technicLargeMotorDevice          DeviceType = 0x2e // technicLargeMotor
+	technicXLargeMotorDevice         DeviceType = 0x2f // technicXLargeMotor
+	spikePrimeMediumMotorDevice      DeviceType = 0x30 // spikePrimeMediumMotor
+	spikePrimeLargeMotorDevice       DeviceType = 0x31 // spikePrimeLargeMotor
+	spikeEssentialAngularMotorDevice DeviceType = 0x41 // spikeEssentialAngularMotor
+	motor75Device                    DeviceType = 0x4B // motor
+	motor76Device                    DeviceType = 0x4C // motor
 )
 
 type DeviceClass int
@@ -84,7 +84,7 @@ func getDeviceClassForType(deviceType DeviceType) (class DeviceClass, err error)
 		return ForceSensor, nil
 	case matrixDevice:
 		return Matrix, nil
-	case motor38Device, motor46Device, motor47Device, motor48Device, motor49Device, motor65Device, motor75Device, motor76Device:
+	case mediumLinearMotorDevice, technicLargeMotorDevice, technicXLargeMotorDevice, spikePrimeMediumMotorDevice, spikePrimeLargeMotorDevice, spikeEssentialAngularMotorDevice, motor75Device, motor76Device:
 		return Motor, nil
 	}
 
