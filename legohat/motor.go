@@ -9,6 +9,12 @@ import (
 	"gobot.io/x/gobot"
 )
 
+const (
+	defaultSpeed = 20
+	defaultPLimit = 0.7
+	defaultBias = 0.3
+)
+
 //go:embed data/version
 var version string
 
@@ -63,6 +69,44 @@ func (l *LegoHatMotorDriver) Start() (err error) {
 			return fmt.Errorf("timed out waiting for connection of device %s on port %d", l.registration.class, l.registration.id)
 		}
 	}
+
+	// TODO: include the device specifications like number of modes as device state to handle things like resets and validations accordingly
+	l.resetModes()
+	l.setPLimit(defaultPLimit)
+	l.setBias(defaultBias)	
+}
+
+func (l *LegoHatMotorDriver) setPLimit(plimit *float64) (err error) {
+	if plimit < 0 || plimit > 1 {
+		return fmt.Errorf("plimit should be between 0 and 1 but was %.2f", plimit)
+	}            
+
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; plimit %.2f\r", l.registration.id, plimit))
+}
+
+
+func (l *LegoHatMotorDriver) setBias(bias *float64) (err error) {
+	if bias < 0 || bias > 1 {
+		return fmt.Errorf("bias should be between 0 and 1 but was %.2f", bias)
+	}            
+
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; bias %.2f\r", l.registration.id, bias))
+}
+
+func (l *LegoHatMotorDriver) setPWM(pwm *float64) (err error) {
+	if pwm < 0 || pwm > 1 {
+		return fmt.Errorf("pwm should be between 0 and 1 but was %.2f", pwm)
+	}            
+
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; pwm ; set %.2f\r", l.registration.id, pwm))
+}
+
+func (l *LegoHatMotorDriver) resetModes() (err error) {
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0\r", l.registration.id))
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; combi 1\r", l.registration.id))
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; combi 2\r", l.registration.id))
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; combi 3\r", l.registration.id))
+	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; combi 4\r", l.registration.id))
 }
 
 // Halt releases the connection to the port
@@ -100,3 +144,49 @@ func (l *LegoHatMotorDriver) TurnOn(speed int) (err error) {
 func (l *LegoHatMotorDriver) TurnOff() {
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; coast\r", l.registration.id))
 }
+
+type runSpec struct {
+	speed int
+}
+
+type (s *runSpec) Validate() (err error) {
+	if s.speed < -100 || s.speed > 100 {
+		return fmt.Errorf("invalid speed, must be between -100 and 100 but was %d", speed)
+	}
+
+	return nil
+}
+
+type RunOption func(spec *runSpec)
+
+func WithSpeed(speed int) func(spec *runSpec) {
+	return func (spec *runSpec)  {
+		spec.speed = speed		
+	}
+}
+
+func (l *LegoHatMotorDriver) RunForRotations(rotations int, opts ...RunOption) (done chan struct{}, err error) {
+	return l.RunForDegrees(rotations * 360, opts...)
+}
+
+func (l *LegoHatMotorDriver) RunForDegrees(degrees int, opts ...RunOption) (done chan struct{}, err error) {
+	done = make(chan struct{})
+
+	runSpec := runSpec{
+		speed: defaultSpeed,
+	}
+
+	for _, apply := range opts {
+		apply(runSpec)
+	}
+
+	err = runSpec.Validate()
+	if err != nil {
+		return err
+	}
+
+	// TODO implement this
+
+	return nil
+}
+
