@@ -54,6 +54,31 @@ func NewLegoMotorDriver(a *Adaptor, portID LegoHatPortID) *LegoHatMotorDriver {
 func (l *LegoHatMotorDriver) Start() (err error) {
 	log.Printf("Waiting for %s to connect on port %d...\n", Motor, l.registration.id)
 
+	err = l.waitForConnect()
+	if err != nil {
+		return err
+	}
+
+	// TODO: include the device specifications like number of modes as device state to handle things like resets and validations accordingly
+	err = l.resetModes()
+	if err != nil {
+		return err
+	}
+
+	err = l.setPLimit(defaultPLimit)
+	if err != nil {
+		return err
+	}
+
+	err = l.setBias(defaultBias)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *LegoHatMotorDriver) waitForConnect() (err error) {
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; select ; echo 0\r", l.registration.id))
 	l.registration.toDevice <- []byte(fmt.Sprintf("list\r"))
 
@@ -69,11 +94,6 @@ func (l *LegoHatMotorDriver) Start() (err error) {
 			return fmt.Errorf("timed out waiting for connection of device %s on port %d", l.registration.class, l.registration.id)
 		}
 	}
-
-	// TODO: include the device specifications like number of modes as device state to handle things like resets and validations accordingly
-	l.resetModes()
-	l.setPLimit(defaultPLimit)
-	l.setBias(defaultBias)
 }
 
 func (l *LegoHatMotorDriver) setPLimit(plimit float64) (err error) {
@@ -82,6 +102,7 @@ func (l *LegoHatMotorDriver) setPLimit(plimit float64) (err error) {
 	}
 
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; plimit %.2f\r", l.registration.id, plimit))
+	return nil
 }
 
 func (l *LegoHatMotorDriver) setBias(bias float64) (err error) {
