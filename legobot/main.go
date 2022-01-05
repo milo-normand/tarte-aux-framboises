@@ -39,7 +39,7 @@ func main() {
 
 	work := func() {
 		log.Printf("Started lego hat")
-		err := motor.TurnOn(10)
+		err := motor.TurnOn(40)
 		if err != nil {
 			log.Printf("error turning on motor: %s", err.Error())
 		}
