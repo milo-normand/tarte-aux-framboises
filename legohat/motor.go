@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	defaultSpeed = 20
+	defaultSpeed  = 20
 	defaultPLimit = 0.7
-	defaultBias = 0.3
+	defaultBias   = 0.3
 )
 
 //go:embed data/version
@@ -73,22 +73,21 @@ func (l *LegoHatMotorDriver) Start() (err error) {
 	// TODO: include the device specifications like number of modes as device state to handle things like resets and validations accordingly
 	l.resetModes()
 	l.setPLimit(defaultPLimit)
-	l.setBias(defaultBias)	
+	l.setBias(defaultBias)
 }
 
 func (l *LegoHatMotorDriver) setPLimit(plimit *float64) (err error) {
 	if plimit < 0 || plimit > 1 {
 		return fmt.Errorf("plimit should be between 0 and 1 but was %.2f", plimit)
-	}            
+	}
 
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; plimit %.2f\r", l.registration.id, plimit))
 }
 
-
 func (l *LegoHatMotorDriver) setBias(bias *float64) (err error) {
 	if bias < 0 || bias > 1 {
 		return fmt.Errorf("bias should be between 0 and 1 but was %.2f", bias)
-	}            
+	}
 
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; bias %.2f\r", l.registration.id, bias))
 }
@@ -96,7 +95,7 @@ func (l *LegoHatMotorDriver) setBias(bias *float64) (err error) {
 func (l *LegoHatMotorDriver) setPWM(pwm *float64) (err error) {
 	if pwm < 0 || pwm > 1 {
 		return fmt.Errorf("pwm should be between 0 and 1 but was %.2f", pwm)
-	}            
+	}
 
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; pwm ; set %.2f\r", l.registration.id, pwm))
 }
@@ -149,7 +148,7 @@ type runSpec struct {
 	speed int
 }
 
-type (s *runSpec) Validate() (err error) {
+func (s *runSpec) Validate() (err error) {
 	if s.speed < -100 || s.speed > 100 {
 		return fmt.Errorf("invalid speed, must be between -100 and 100 but was %d", speed)
 	}
@@ -160,13 +159,13 @@ type (s *runSpec) Validate() (err error) {
 type RunOption func(spec *runSpec)
 
 func WithSpeed(speed int) func(spec *runSpec) {
-	return func (spec *runSpec)  {
-		spec.speed = speed		
+	return func(spec *runSpec) {
+		spec.speed = speed
 	}
 }
 
 func (l *LegoHatMotorDriver) RunForRotations(rotations int, opts ...RunOption) (done chan struct{}, err error) {
-	return l.RunForDegrees(rotations * 360, opts...)
+	return l.RunForDegrees(rotations*360, opts...)
 }
 
 func (l *LegoHatMotorDriver) RunForDegrees(degrees int, opts ...RunOption) (done chan struct{}, err error) {
@@ -189,4 +188,3 @@ func (l *LegoHatMotorDriver) RunForDegrees(degrees int, opts ...RunOption) (done
 
 	return nil
 }
-
