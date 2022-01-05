@@ -126,11 +126,9 @@ func (l *LegoHatMotorDriver) setPWM(pwm float64) (err error) {
 }
 
 func (l *LegoHatMotorDriver) resetModes() (err error) {
-	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0\r", l.registration.id))
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; combi 1\r", l.registration.id))
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; combi 2\r", l.registration.id))
 	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; combi 3\r", l.registration.id))
-	l.registration.toDevice <- []byte(fmt.Sprintf("port %d ; combi 4\r", l.registration.id))
 
 	return nil
 }
