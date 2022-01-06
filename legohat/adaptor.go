@@ -155,7 +155,8 @@ func (l *Adaptor) writeInstructions() {
 	}
 }
 
-func (l *Adaptor) run() (err error) {
+// TODO: either return errors on a channel or handle all errors internally
+func (l *Adaptor) run() {
 	lines := make(chan string)
 	go ReadPort(l.port, lines)
 
@@ -164,7 +165,8 @@ func (l *Adaptor) run() (err error) {
 		if strings.HasPrefix(line, "P") {
 			lineParts := strings.Split(line, ":")
 			if len(lineParts) < 2 {
-				return fmt.Errorf("unexpected line format with P prefix. should be P<id>: message but didn't have the ':' delimiter: %s", line)
+				log.Printf("unexpected line format with P prefix. should be P<id>: message but didn't have the ':' delimiter: %s\n", line)
+				continue
 			}
 			rawPortID := strings.TrimPrefix(lineParts[0], "P")
 			portID := rawPortID[0] - '0'
@@ -176,7 +178,7 @@ func (l *Adaptor) run() (err error) {
 				rawDeviceType := strings.TrimPrefix(message, connectedMessage)
 				deviceTypeVal, err := strconv.ParseInt(strings.Trim(rawDeviceType, " "), 16, 64)
 				if err != nil {
-					return err
+					log.Printf("unexpected device type format on line %s: %s\n", line, err.Error())
 				}
 
 				deviceType := DeviceType(deviceTypeVal)
@@ -226,7 +228,6 @@ func (l *Adaptor) run() (err error) {
 	}
 
 	log.Printf("Terminated reading on serial port\n")
-	return nil
 }
 
 func ReadPort(port serial.Port, out chan string) {
