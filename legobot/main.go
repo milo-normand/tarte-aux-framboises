@@ -35,7 +35,7 @@ func main() {
 
 	r := raspi.NewAdaptor()
 	hat := legohat.NewAdaptor()
-	motor := legohat.NewLegoMotorDriver(hat, legohat.PortA)
+	motor := legohat.NewLegoMotorDriver(hat, legohat.PortA, legohat.WithAdditionalMotor(legohat.PortB))
 
 	work := func() {
 		log.Printf("Started lego hat")
