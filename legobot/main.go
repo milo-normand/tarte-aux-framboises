@@ -7,6 +7,7 @@ import (
 	_ "net/http"
 	_ "net/http/pprof"
 	"os"
+	"time"
 
 	"github.com/briandowns/openweathermap"
 	"github.com/milo-normand/tarte-aux-framboises/legohat"
@@ -39,10 +40,13 @@ func main() {
 
 	work := func() {
 		log.Printf("Started lego hat")
-		err := motor.TurnOn(40)
+		done, err := motor.RunForDuration(time.Millisecond*3500, legohat.WithSpeed(50))
 		if err != nil {
 			log.Printf("error turning on motor: %s", err.Error())
 		}
+
+		<-done
+		log.Printf("Done running for 3.5 seconds")
 	}
 
 	robot := gobot.NewRobot("legobot",

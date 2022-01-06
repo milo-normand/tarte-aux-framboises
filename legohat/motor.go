@@ -1,6 +1,7 @@
 package legohat
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"log"
@@ -89,25 +90,37 @@ func (l *LegoHatMotorDriver) Start() (err error) {
 }
 
 func (l *LegoHatMotorDriver) waitForConnect() (err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	for _, d := range l.devices {
 		d.toDevice <- []byte(fmt.Sprintf("port %d ; select ; echo 0\r", d.id))
 		d.toDevice <- []byte(fmt.Sprintf("list\r"))
 
 		log.Printf("Waiting for %s to connect on port %d...\n", Motor, d.id)
 
-		select {
-		case e := <-d.fromDevice:
-			log.Printf("Received message on port %d: %v\n", d.id, e)
-			if e.msgType == ConnectedMessage {
-				log.Printf("Device %s connected on port %d", d.class, d.id)
-				continue
-			}
-		case <-time.After(2 * time.Second):
-			return fmt.Errorf("timed out waiting for connection of device %s on port %d", d.class, d.id)
+		err := waitForEventOnDevice(ctx, ConnectedMessage, d)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+// TODO figure out how to use context so that we have a single timeout set and then have multiple goroutines waiting for
+// a signal
+func waitForEventOnDevice(ctx context.Context, messageType DeviceMessageType, d *deviceRegistration) (err error) {
+	select {
+	case e := <-d.fromDevice:
+		log.Printf("Received message on port %d: %v\n", d.id, e)
+		if e.msgType == messageType {
+			log.Printf("Got awaited message %s on %s device at port %d", messageType, d.class, d.id)
+			return
+		}
+	case <-ctx.Done():
+		return fmt.Errorf("timed out waiting for message %s for device %s on port %d", messageType, d.class, d.id)
+	}
 }
 
 func (l *LegoHatMotorDriver) setPLimit(plimit float64) (err error) {
@@ -241,6 +254,38 @@ func (l *LegoHatMotorDriver) RunForDegrees(degrees int, opts ...RunOption) (done
 	}
 
 	// TODO implement this
+
+	return done, nil
+}
+
+func (l *LegoHatMotorDriver) RunForDuration(duration time.Duration, opts ...RunOption) (done chan struct{}, err error) {
+	done = make(chan struct{})
+
+	runSpec := runSpec{
+		speed: defaultSpeed,
+	}
+
+	for _, apply := range opts {
+		apply(&runSpec)
+	}
+
+	err = runSpec.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), duration+time.Second*1)
+	defer cancel()
+	defer l.TurnOff()
+
+	for _, d := range l.devices {
+		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; select 0 ; pid %d 0 0 s1 1 0 0.003 0.01 0 100; set pulse %d 0.0 %.2f 0\r", d.id, d.id, runSpec.speed, duration.Seconds()))
+
+		err := waitForEventOnDevice(ctx, PulseDoneMessage, d)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return done, nil
 }
