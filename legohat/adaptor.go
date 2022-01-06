@@ -167,10 +167,7 @@ func (l *Adaptor) run() (err error) {
 				return fmt.Errorf("unexpected line format with P prefix. should be P<id>: message but didn't have the ':' delimiter: %s", line)
 			}
 			rawPortID := strings.TrimPrefix(lineParts[0], "P")
-			portID, err := strconv.Atoi(rawPortID)
-			if err != nil {
-				return err
-			}
+			portID := rawPortID[0] - '0'
 
 			message := strings.Trim(lineParts[1], " ")
 
@@ -236,6 +233,7 @@ func ReadPort(port serial.Port, out chan string) {
 	scanner := bufio.NewScanner(port)
 	for scanner.Scan() {
 		line := scanner.Text()
+		log.Printf("raw line: %s\n", line)
 
 		if len(line) == 0 {
 			continue
