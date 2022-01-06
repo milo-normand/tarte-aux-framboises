@@ -116,11 +116,13 @@ func waitForEventOnDevice(ctx context.Context, messageType DeviceMessageType, d 
 		log.Printf("Received message on port %d: %v\n", d.id, e)
 		if e.msgType == messageType {
 			log.Printf("Got awaited message %s on %s device at port %d", messageType, d.class, d.id)
-			return
+			return nil
 		}
 	case <-ctx.Done():
 		return fmt.Errorf("timed out waiting for message %s for device %s on port %d", messageType, d.class, d.id)
 	}
+
+	return nil
 }
 
 func (l *LegoHatMotorDriver) setPLimit(plimit float64) (err error) {
