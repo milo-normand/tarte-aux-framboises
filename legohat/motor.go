@@ -108,8 +108,8 @@ func (l *LegoHatMotorDriver) waitForConnect() (err error) {
 	return nil
 }
 
-// TODO figure out how to use context so that we have a single timeout set and then have multiple goroutines waiting for
-// a signal
+// TODO Always also consume timeout messages and, separately, also make sure to consume disconnected messages overall so as to
+// guarantee that all messages on the fromDevice channel are consumed and that we're not blocking the producing adaptor goroutine
 func waitForEventOnDevice(ctx context.Context, messageType DeviceMessageType, d *deviceRegistration) (err error) {
 	select {
 	case e := <-d.fromDevice:
