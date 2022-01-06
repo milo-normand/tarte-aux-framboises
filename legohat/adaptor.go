@@ -43,6 +43,8 @@ const (
 	disconnectedMessage     = "disconnected"
 	timeoutMessage          = "timeout during data phase: disconnecting"
 	nothingConnectedMessage = "no device detected"
+	pulseDoneMessage        = "pulse done"
+	rampDoneMessage         = "ramp done"
 )
 
 type legoDevice interface {
@@ -158,7 +160,6 @@ func (l *Adaptor) run() (err error) {
 	go ReadPort(l.port, lines)
 
 	for line := range lines {
-
 		log.Printf("Got line: %s\n", line)
 		if strings.HasPrefix(line, "P") {
 			lineParts := strings.Split(line, ":")
@@ -205,6 +206,22 @@ func (l *Adaptor) run() (err error) {
 				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
 					d.fromDevice <- DeviceEvent{
 						msgType: TimeoutMessage,
+					}
+				}
+			case strings.HasPrefix(message, pulseDoneMessage):
+				log.Printf("Pulse done message on port %d", portID)
+
+				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
+					d.fromDevice <- DeviceEvent{
+						msgType: PulseDoneMessage,
+					}
+				}
+			case strings.HasPrefix(message, rampDoneMessage):
+				log.Printf("Ramp done message on port %d", portID)
+
+				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
+					d.fromDevice <- DeviceEvent{
+						msgType: RampDoneMessage,
 					}
 				}
 			}

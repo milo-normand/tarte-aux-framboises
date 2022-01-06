@@ -22,6 +22,8 @@ const (
 	ConnectedMessage    DeviceMessageType = "connected"
 	DisconnectedMessage DeviceMessageType = "disconnected"
 	TimeoutMessage      DeviceMessageType = "timeout"
+	PulseDoneMessage    DeviceMessageType = "pulseDone"
+	RampDoneMessage     DeviceMessageType = "rampDone"
 	DataMessage         DeviceMessageType = "data"
 )
 
