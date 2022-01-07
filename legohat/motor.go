@@ -5,6 +5,9 @@ import (
 	_ "embed"
 	"fmt"
 	"log"
+	"math"
+	"strconv"
+	"strings"
 	"time"
 
 	"gobot.io/x/gobot"
@@ -99,7 +102,7 @@ func (l *LegoHatMotorDriver) waitForConnect() (err error) {
 
 		log.Printf("Waiting for %s to connect on port %d...\n", Motor, d.id)
 
-		err := waitForEventOnDevice(ctx, ConnectedMessage, d)
+		_, err := waitForEventOnDevice(ctx, ConnectedMessage, d)
 		if err != nil {
 			return err
 		}
@@ -108,21 +111,23 @@ func (l *LegoHatMotorDriver) waitForConnect() (err error) {
 	return nil
 }
 
-// TODO Always also consume timeout messages and, separately, also make sure to consume disconnected messages overall so as to
-// guarantee that all messages on the fromDevice channel are consumed and that we're not blocking the producing adaptor goroutine
-func waitForEventOnDevice(ctx context.Context, messageType DeviceMessageType, d *deviceRegistration) (err error) {
+func waitForEventOnDevice(ctx context.Context, awaitedMsgType DeviceMessageType, d *deviceRegistration) (rawData []byte, err error) {
 	select {
 	case e := <-d.fromDevice:
 		log.Printf("Received message on port %d: %v\n", d.id, e)
-		if e.msgType == messageType {
-			log.Printf("Got awaited message %s on %s device at port %d", messageType, d.class, d.id)
-			return nil
+		switch e.msgType {
+		case awaitedMsgType:
+			log.Printf("Got awaited message %s on %s device at port %d", awaitedMsgType, d.class, d.id)
+			return e.data, nil
+		case TimeoutMessage:
+			log.Printf("Got awaited message %s on %s device at port %d", timeoutMessage, d.class, d.id)
+			return e.data, fmt.Errorf("received timeout from %s device on port %d", d.class, d.id)
 		}
 	case <-ctx.Done():
-		return fmt.Errorf("timed out waiting for message %s for device %s on port %d", messageType, d.class, d.id)
+		return nil, fmt.Errorf("timed out waiting for message %s for device %s on port %d", awaitedMsgType, d.class, d.id)
 	}
 
-	return nil
+	return nil, fmt.Errorf("unreachable code reached")
 }
 
 func (l *LegoHatMotorDriver) setPLimit(plimit float64) (err error) {
@@ -204,6 +209,7 @@ func (l *LegoHatMotorDriver) TurnOn(speed int) (err error) {
 
 	for _, d := range l.devices {
 		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; select 0 ; pid %d 0 0 s1 1 0 0.003 0.01 0 100; set %d\r", d.id, d.id, speed))
+		d.currentMode = 0
 	}
 
 	return nil
@@ -255,9 +261,123 @@ func (l *LegoHatMotorDriver) RunForDegrees(degrees int, opts ...RunOption) (done
 		return nil, err
 	}
 
-	// TODO implement this
+	direction := 1.0
+	if runSpec.speed < 0 {
+		runSpec.speed = -1 * runSpec.speed
+		direction = -1.0
+	}
+
+	position, err := l.GetPosition()
+	if err != nil {
+		return nil, err
+	}
+
+	targetPosition := ((float64(degrees) * direction) + float64(position)) / 360.0
+	currentDegree := float64(position) / 360.0
+
+	// TODO: understand where the multiplication factor comes from
+	actualSpeedPerSecond := float64(runSpec.speed) * 0.05
+	durationInSeconds := math.Abs((targetPosition - currentDegree) / actualSpeedPerSecond)
+	timeoutDuration := time.Millisecond * time.Duration((500 + int(math.Ceil(durationInSeconds)*1000)))
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
+	defer cancel()
+	defer func() {
+		<-time.After(time.Millisecond * 200)
+		l.TurnOff()
+		done <- struct{}{}
+	}()
+
+	for _, d := range l.devices {
+		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; select 0 ; pid %d 0 1 s4 0.0027777778 0 5 0 .1 3 ; set ramp %.2f %.2f %.2f 0\r", d.id, d.id, currentDegree, targetPosition, durationInSeconds))
+
+		_, err := waitForEventOnDevice(ctx, RampDoneMessage, d)
+		if err != nil {
+			return nil, err
+		}
+
+		d.currentMode = 0
+	}
 
 	return done, nil
+}
+
+func (l *LegoHatMotorDriver) GetPosition() (pos int, err error) {
+	s, err := l.GetState()
+	if err != nil {
+		return 0, err
+	}
+
+	return s.position, nil
+}
+
+func (l *LegoHatMotorDriver) GetAbsolutePosition() (absPos int, err error) {
+	s, err := l.GetState()
+	if err != nil {
+		return 0, err
+	}
+
+	return s.absolutePosition, nil
+}
+
+func (l *LegoHatMotorDriver) GetSpeed() (speed int, err error) {
+	s, err := l.GetState()
+	if err != nil {
+		return 0, err
+	}
+
+	return s.speed, nil
+}
+
+type MotorState struct {
+	speed            int
+	absolutePosition int
+	position         int
+}
+
+func (l *LegoHatMotorDriver) GetState() (state *MotorState, err error) {
+	// TODO: validate the current mode before running this. But what's a simple mode?
+	primary := l.devices[0]
+
+	primary.toDevice <- []byte(fmt.Sprintf("port %d ; selonce %d\r", primary.id, primary.currentMode))
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
+	defer cancel()
+
+	rawData, err := waitForEventOnDevice(ctx, DataMessage, primary)
+	if err != nil {
+		return nil, err
+	}
+
+	data := strings.Trim(string(rawData), " ")
+	parts := strings.Split(data, " ")
+
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("expected 3 integer values but got %d: %s", len(parts), data)
+	}
+
+	speed, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse speed from %s: %s", data, err.Error())
+	}
+
+	position, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse position from %s: %s", data, err.Error())
+	}
+
+	absPos, err := strconv.ParseInt(parts[2], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse absolute position from %s: %s", data, err.Error())
+	}
+
+	state = &MotorState{
+		speed:            int(speed),
+		absolutePosition: int(absPos),
+		position:         int(position),
+	}
+
+	return state, nil
 }
 
 func (l *LegoHatMotorDriver) RunForDuration(duration time.Duration, opts ...RunOption) (done chan struct{}, err error) {
@@ -278,15 +398,20 @@ func (l *LegoHatMotorDriver) RunForDuration(duration time.Duration, opts ...RunO
 
 	ctx, cancel := context.WithTimeout(context.Background(), duration+time.Second*1)
 	defer cancel()
-	defer l.TurnOff()
+	defer func() {
+		l.TurnOff()
+		done <- struct{}{}
+	}()
 
 	for _, d := range l.devices {
 		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; select 0 ; pid %d 0 0 s1 1 0 0.003 0.01 0 100; set pulse %d 0.0 %.2f 0\r", d.id, d.id, runSpec.speed, duration.Seconds()))
 
-		err := waitForEventOnDevice(ctx, PulseDoneMessage, d)
+		_, err := waitForEventOnDevice(ctx, PulseDoneMessage, d)
 		if err != nil {
 			return nil, err
 		}
+
+		d.currentMode = 0
 	}
 
 	return done, nil

@@ -8,12 +8,13 @@ type Device struct {
 }
 
 type deviceRegistration struct {
-	id         LegoHatPortID
-	class      DeviceClass
-	deviceType DeviceType
-	name       string
-	fromDevice chan DeviceEvent
-	toDevice   chan []byte
+	id          LegoHatPortID
+	class       DeviceClass
+	deviceType  DeviceType
+	name        string
+	currentMode int
+	fromDevice  chan DeviceEvent
+	toDevice    chan []byte
 }
 
 type DeviceMessageType string

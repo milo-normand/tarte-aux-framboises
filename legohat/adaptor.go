@@ -194,11 +194,15 @@ func (l *Adaptor) run() {
 			case strings.HasPrefix(message, disconnectedMessage):
 				log.Printf("Device disconnected on port %d", portID)
 
-				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
-					d.fromDevice <- DeviceEvent{
-						msgType: DisconnectedMessage,
-					}
-				}
+				// TODO: figure out what to do with this case. Do we need somethint that receives all
+				// messages all the time and only dispatches responses that have been registered and
+				// awaited for
+
+				// if d, ok := l.devices[LegoHatPortID(portID)]; ok {
+				// 	d.fromDevice <- DeviceEvent{
+				// 		msgType: DisconnectedMessage,
+				// 	}
+				// }
 			case strings.HasPrefix(message, timeoutMessage):
 				log.Printf("Device timeout on port %d", portID)
 
