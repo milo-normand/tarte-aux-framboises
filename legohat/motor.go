@@ -339,7 +339,8 @@ func (l *LegoHatMotorDriver) GetState() (state *MotorState, err error) {
 	// TODO: validate the current mode before running this. But what's a simple mode?
 	primary := l.devices[0]
 
-	primary.toDevice <- []byte(fmt.Sprintf("port %d ; selonce %d\r", primary.id, primary.currentMode))
+	// TODO: review the combi stuff since that's more of a hack/guess at the moment
+	primary.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; selonce %d\r", primary.id, primary.currentMode))
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()

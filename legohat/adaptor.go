@@ -156,6 +156,8 @@ func (l *Adaptor) writeInstructions() {
 }
 
 // TODO: either return errors on a channel or handle all errors internally
+// TODO: Handle data messages
+// TODO: implement consumption of all messages and dispatching of only expected/awaited messages
 func (l *Adaptor) run() {
 	lines := make(chan string)
 	go ReadPort(l.port, lines)
