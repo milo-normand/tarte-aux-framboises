@@ -64,6 +64,22 @@ type Adaptor struct {
 	devices              map[LegoHatPortID]*deviceRegistration
 	terminateDispatching chan bool
 	toWrite              chan []byte
+	eventDispatcher
+}
+
+type eventDispatcher struct {
+	awaitedEvents map[eventKey]eventRegistration
+	input         chan DeviceEvent
+}
+
+type eventRegistration struct {
+	persistent bool
+	conduit    chan DeviceEvent
+}
+
+type eventKey struct {
+	msgType DeviceMessageType
+	portID  LegoHatPortID
 }
 
 type Option func(c *Config)
@@ -90,6 +106,9 @@ func NewAdaptor(opts ...Option) *Adaptor {
 		devices:              make(map[LegoHatPortID]*deviceRegistration),
 		terminateDispatching: make(chan bool),
 		toWrite:              make(chan []byte),
+		eventDispatcher: eventDispatcher{
+			awaitedEvents: make(map[eventKey]eventRegistration),
+		},
 	}
 }
 
@@ -106,7 +125,7 @@ func (l *Adaptor) Connect() (err error) {
 		return err
 	}
 
-	go l.run()
+	go l.inputsToEvents()
 
 	for _, d := range l.devices {
 		log.Printf("Starting dispatching routine for device on port %d...\n", d.id)
@@ -120,11 +139,10 @@ func (l *Adaptor) Connect() (err error) {
 
 func (l *Adaptor) registerDevice(portID LegoHatPortID, deviceClass DeviceClass) (registration *deviceRegistration) {
 	r := deviceRegistration{
-		id:         portID,
-		class:      deviceClass,
-		name:       deviceClass.String(),
-		toDevice:   make(chan []byte),
-		fromDevice: make(chan DeviceEvent),
+		id:       portID,
+		class:    deviceClass,
+		name:     deviceClass.String(),
+		toDevice: make(chan []byte),
 	}
 	l.devices[portID] = &r
 
@@ -156,9 +174,7 @@ func (l *Adaptor) writeInstructions() {
 }
 
 // TODO: either return errors on a channel or handle all errors internally
-// TODO: Handle data messages
-// TODO: implement consumption of all messages and dispatching of only expected/awaited messages
-func (l *Adaptor) run() {
+func (l *Adaptor) inputsToEvents() {
 	lines := make(chan string)
 	go ReadPort(l.port, lines)
 
@@ -170,12 +186,25 @@ func (l *Adaptor) run() {
 				log.Printf("unexpected line format with P prefix. should be P<id>: message but didn't have the ':' delimiter: %s\n", line)
 				continue
 			}
-			rawPortID := strings.TrimPrefix(lineParts[0], "P")
+			identification := lineParts[0]
+			rawPortID := strings.TrimPrefix(identification, "P")
 			portID := rawPortID[0] - '0'
-
 			message := strings.Trim(lineParts[1], " ")
 
 			switch {
+			// This is a case of a data message with the mode suffix after the port id
+			case len(lineParts[0]) > 2:
+				mode := identification[2:]
+
+				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
+					log.Printf("Sending data message [%s] to listener %v...\n", DataMessage, d)
+
+					l.eventDispatcher.input <- DeviceEvent{
+						msgType: DataMessage,
+						mode:    mode,
+						data:    []byte(message),
+					}
+				}
 			case strings.HasPrefix(message, connectedMessage):
 				rawDeviceType := strings.TrimPrefix(message, connectedMessage)
 				deviceTypeVal, err := strconv.ParseInt(strings.Trim(rawDeviceType, " "), 16, 64)
@@ -187,47 +216,38 @@ func (l *Adaptor) run() {
 				log.Printf("Device of type %s connected on port %d", deviceType, portID)
 
 				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
-					log.Printf("Sending message [%s] to listener %v...\n", ConnectedMessage, d)
 					d.deviceType = deviceType
-					d.fromDevice <- DeviceEvent{
-						msgType: ConnectedMessage,
-					}
 				}
+
+				l.eventDispatcher.input <- DeviceEvent{
+					msgType: ConnectedMessage,
+				}
+
 			case strings.HasPrefix(message, disconnectedMessage):
 				log.Printf("Device disconnected on port %d", portID)
 
-				// TODO: figure out what to do with this case. Do we need somethint that receives all
-				// messages all the time and only dispatches responses that have been registered and
-				// awaited for
+				l.eventDispatcher.input <- DeviceEvent{
+					msgType: DisconnectedMessage,
+				}
 
-				// if d, ok := l.devices[LegoHatPortID(portID)]; ok {
-				// 	d.fromDevice <- DeviceEvent{
-				// 		msgType: DisconnectedMessage,
-				// 	}
-				// }
 			case strings.HasPrefix(message, timeoutMessage):
 				log.Printf("Device timeout on port %d", portID)
 
-				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
-					d.fromDevice <- DeviceEvent{
-						msgType: TimeoutMessage,
-					}
+				l.eventDispatcher.input <- DeviceEvent{
+					msgType: TimeoutMessage,
 				}
+
 			case strings.HasPrefix(message, pulseDoneMessage):
 				log.Printf("Pulse done message on port %d", portID)
 
-				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
-					d.fromDevice <- DeviceEvent{
-						msgType: PulseDoneMessage,
-					}
+				l.eventDispatcher.input <- DeviceEvent{
+					msgType: PulseDoneMessage,
 				}
 			case strings.HasPrefix(message, rampDoneMessage):
 				log.Printf("Ramp done message on port %d", portID)
 
-				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
-					d.fromDevice <- DeviceEvent{
-						msgType: RampDoneMessage,
-					}
+				l.eventDispatcher.input <- DeviceEvent{
+					msgType: RampDoneMessage,
 				}
 			}
 		}
@@ -273,11 +293,6 @@ func (l *Adaptor) Finalize() (err error) {
 	l.port.Close()
 
 	l.terminateDispatching <- true
-	log.Printf("Sending signal to stop reading...\n")
-
-	for _, d := range l.devices {
-		close(d.fromDevice)
-	}
 
 	return nil
 }
@@ -348,4 +363,46 @@ func initialize(devicePath string, version string) (port serial.Port, err error)
 
 	port.SetReadTimeout(time.Second * 1)
 	return port, nil
+}
+
+func (d *eventDispatcher) awaitMessage(portID LegoHatPortID, msgType DeviceMessageType) (registration eventRegistration) {
+	receiver := make(chan DeviceEvent)
+	registration = eventRegistration{
+		conduit: receiver,
+	}
+
+	d.awaitedEvents[eventKey{msgType: msgType, portID: portID}] = registration
+
+	return registration
+}
+
+func (d *eventDispatcher) awaitAllMessages(portID LegoHatPortID, msgType DeviceMessageType) (registration eventRegistration) {
+	receiver := make(chan DeviceEvent)
+	registration = eventRegistration{
+		persistent: true,
+		conduit:    receiver,
+	}
+
+	d.awaitedEvents[eventKey{msgType: msgType, portID: portID}] = registration
+
+	return registration
+}
+
+func (d *eventDispatcher) dispatchEvents() {
+	for e := range d.input {
+		key := eventKey{
+			msgType: e.msgType,
+			portID:  e.portID,
+		}
+
+		if r, ok := d.awaitedEvents[key]; ok {
+			r.conduit <- e
+			if !r.persistent {
+				log.Printf("Dropping registration")
+				delete(d.awaitedEvents, key)
+			}
+		} else {
+			log.Printf("Dropping event %s as no one was waiting for it", e.msgType)
+		}
+	}
 }

@@ -97,12 +97,14 @@ func (l *LegoHatMotorDriver) waitForConnect() (err error) {
 	defer cancel()
 
 	for _, d := range l.devices {
+		registration := l.adaptor.awaitMessage(d.id, ConnectedMessage)
+
 		d.toDevice <- []byte(fmt.Sprintf("port %d ; select ; echo 0\r", d.id))
 		d.toDevice <- []byte(fmt.Sprintf("list\r"))
 
 		log.Printf("Waiting for %s to connect on port %d...\n", Motor, d.id)
 
-		_, err := waitForEventOnDevice(ctx, ConnectedMessage, d)
+		_, err := d.waitForEventOnDevice(ctx, ConnectedMessage, registration.conduit)
 		if err != nil {
 			return err
 		}
@@ -111,9 +113,9 @@ func (l *LegoHatMotorDriver) waitForConnect() (err error) {
 	return nil
 }
 
-func waitForEventOnDevice(ctx context.Context, awaitedMsgType DeviceMessageType, d *deviceRegistration) (rawData []byte, err error) {
+func (d *deviceRegistration) waitForEventOnDevice(ctx context.Context, awaitedMsgType DeviceMessageType, conduit <-chan DeviceEvent) (rawData []byte, err error) {
 	select {
-	case e := <-d.fromDevice:
+	case e := <-conduit:
 		log.Printf("Received message on port %d: %v\n", d.id, e)
 		switch e.msgType {
 		case awaitedMsgType:
@@ -246,7 +248,7 @@ func (l *LegoHatMotorDriver) RunForRotations(rotations int, opts ...RunOption) (
 }
 
 func (l *LegoHatMotorDriver) RunForDegrees(degrees int, opts ...RunOption) (done chan struct{}, err error) {
-	done = make(chan struct{})
+	done = make(chan struct{}, 1)
 
 	runSpec := runSpec{
 		speed: defaultSpeed,
@@ -289,9 +291,11 @@ func (l *LegoHatMotorDriver) RunForDegrees(degrees int, opts ...RunOption) (done
 	}()
 
 	for _, d := range l.devices {
+		registration := l.adaptor.awaitMessage(d.id, RampDoneMessage)
+
 		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; select 0 ; pid %d 0 1 s4 0.0027777778 0 5 0 .1 3 ; set ramp %.2f %.2f %.2f 0\r", d.id, d.id, currentDegree, targetPosition, durationInSeconds))
 
-		_, err := waitForEventOnDevice(ctx, RampDoneMessage, d)
+		_, err := d.waitForEventOnDevice(ctx, RampDoneMessage, registration.conduit)
 		if err != nil {
 			return nil, err
 		}
@@ -339,13 +343,15 @@ func (l *LegoHatMotorDriver) GetState() (state *MotorState, err error) {
 	// TODO: validate the current mode before running this. But what's a simple mode?
 	primary := l.devices[0]
 
+	registration := l.adaptor.awaitMessage(primary.id, DataMessage)
+
 	// TODO: review the combi stuff since that's more of a hack/guess at the moment
 	primary.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; selonce %d\r", primary.id, primary.currentMode))
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
 
-	rawData, err := waitForEventOnDevice(ctx, DataMessage, primary)
+	rawData, err := primary.waitForEventOnDevice(ctx, DataMessage, registration.conduit)
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +388,7 @@ func (l *LegoHatMotorDriver) GetState() (state *MotorState, err error) {
 }
 
 func (l *LegoHatMotorDriver) RunForDuration(duration time.Duration, opts ...RunOption) (done chan struct{}, err error) {
-	done = make(chan struct{})
+	done = make(chan struct{}, 1)
 
 	runSpec := runSpec{
 		speed: defaultSpeed,
@@ -405,9 +411,11 @@ func (l *LegoHatMotorDriver) RunForDuration(duration time.Duration, opts ...RunO
 	}()
 
 	for _, d := range l.devices {
+		registration := l.adaptor.awaitMessage(d.id, PulseDoneMessage)
+
 		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; select 0 ; pid %d 0 0 s1 1 0 0.003 0.01 0 100; set pulse %d 0.0 %.2f 0\r", d.id, d.id, runSpec.speed, duration.Seconds()))
 
-		_, err := waitForEventOnDevice(ctx, PulseDoneMessage, d)
+		_, err := d.waitForEventOnDevice(ctx, PulseDoneMessage, registration.conduit)
 		if err != nil {
 			return nil, err
 		}

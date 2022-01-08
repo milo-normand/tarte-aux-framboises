@@ -13,7 +13,6 @@ type deviceRegistration struct {
 	deviceType  DeviceType
 	name        string
 	currentMode int
-	fromDevice  chan DeviceEvent
 	toDevice    chan []byte
 }
 
@@ -30,6 +29,8 @@ const (
 
 type DeviceEvent struct {
 	msgType DeviceMessageType
+	portID  LegoHatPortID
+	mode    string
 	data    []byte
 }
 
