@@ -108,6 +108,7 @@ func NewAdaptor(opts ...Option) *Adaptor {
 		toWrite:              make(chan []byte),
 		eventDispatcher: eventDispatcher{
 			awaitedEvents: make(map[eventKey]eventRegistration),
+			input: make(chan DeviceEvent),
 		},
 	}
 }
@@ -260,7 +261,6 @@ func ReadPort(port serial.Port, out chan string) {
 	scanner := bufio.NewScanner(port)
 	for scanner.Scan() {
 		line := scanner.Text()
-		log.Printf("raw line: %s\n", line)
 
 		if len(line) == 0 {
 			continue
