@@ -384,7 +384,7 @@ func (l *Adaptor) initialize(devicePath string, version string) (err error) {
 			return err
 		}
 
-		err = l.waitForText(doneLine)
+		err = l.waitForText(doneLine, 15*time.Second)
 		if err != nil {
 			return err
 		}
@@ -399,7 +399,7 @@ func (l *Adaptor) initialize(devicePath string, version string) (err error) {
 			return err
 		}
 
-		err = l.waitForText(doneLine)
+		err = l.waitForText(doneLine, 15*time.Second)
 		if err != nil {
 			return err
 		}
@@ -453,8 +453,7 @@ func (l *Adaptor) loadFirmware() (err error) {
 		return err
 	}
 
-	log.Printf("Waiting for prompt...\n")
-	err = l.waitForText(promptPrefix)
+	err = l.waitForText(promptPrefix, time.Second*5)
 	if err != nil {
 		return err
 	}
@@ -484,8 +483,7 @@ func (l *Adaptor) loadFirmware() (err error) {
 		return err
 	}
 
-	log.Printf("Waiting for prompt...\n")
-	err = l.waitForText(promptPrefix)
+	err = l.waitForText(promptPrefix, time.Second*5)
 	if err != nil {
 		return err
 	}
@@ -515,8 +513,7 @@ func (l *Adaptor) loadFirmware() (err error) {
 		return err
 	}
 
-	log.Printf("Waiting for prompt...\n")
-	err = l.waitForText(promptPrefix)
+	err = l.waitForText(promptPrefix, time.Second*5)
 	if err != nil {
 		return err
 	}
@@ -540,14 +537,15 @@ func checksum() uint64 {
 	return val
 }
 
-func (l *Adaptor) waitForText(text string) (err error) {
+func (l *Adaptor) waitForText(text string, timeout time.Duration) (err error) {
+	log.Printf("Waiting for text [%s]...", text)
 	promptReceived := make(chan struct{})
 	go l.scanForText(text, promptReceived)
 
 	select {
 	case <-promptReceived:
 		return nil
-	case <-time.After(5 * time.Second):
+	case <-time.After(timeout):
 		return fmt.Errorf("timed out waiting for %s from hat", text)
 	}
 }
