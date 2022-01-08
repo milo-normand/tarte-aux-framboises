@@ -320,7 +320,7 @@ func (l *Adaptor) Finalize() (err error) {
 	return nil
 }
 
-func (l *Adaptor) initialize(devicePath string, version string) (port serial.Port, err error) {
+func (l *Adaptor) initialize(devicePath string, version string) (err error) {
 	mode := &serial.Mode{
 		BaudRate: 115200,
 		Parity:   serial.NoParity,
@@ -328,16 +328,16 @@ func (l *Adaptor) initialize(devicePath string, version string) (port serial.Por
 		StopBits: serial.OneStopBit,
 	}
 
-	port, err = serial.Open(devicePath, mode)
+	l.port, err = serial.Open(devicePath, mode)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	port.SetReadTimeout(time.Second * 5)
+	l.port.SetReadTimeout(time.Second * 5)
 
 	log.Printf("Checking lego hat version (expecting %s)...\n", version)
-	_, err = port.Write([]byte("version\r"))
+	_, err = l.port.Write([]byte("version\r"))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	state := otherState
@@ -374,47 +374,50 @@ func (l *Adaptor) initialize(devicePath string, version string) (port serial.Por
 		}
 
 		log.Printf("Sending version command...")
-		_, err = port.Write([]byte("version\r"))
+		_, err = l.port.Write([]byte("version\r"))
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
+
+	// TODO: remove once tested
+	state = needNewFirmwareState
 
 	if state == needNewFirmwareState {
 		l.resetHat()
 		err = l.loadFirmware()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		err = l.reboot()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		err = l.waitForText(doneLine)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	} else if state == bootloaderState {
 		err = l.loadFirmware()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		err = l.reboot()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		err = l.waitForText(doneLine)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	port.SetReadTimeout(time.Second * 1)
-	return port, nil
+	l.port.SetReadTimeout(time.Second * 1)
+	return nil
 }
 
 func (l *Adaptor) reboot() (err error) {
@@ -427,6 +430,7 @@ func (l *Adaptor) reboot() (err error) {
 }
 
 func (l *Adaptor) resetHat() {
+	log.Printf("Resetting hat...\n")
 	l.turnPinOff(bootZeroPinNumber)
 	l.turnPinOff(resetPinNumber)
 
@@ -438,23 +442,30 @@ func (l *Adaptor) resetHat() {
 }
 
 func (l *Adaptor) loadFirmware() (err error) {
+	log.Printf("Loading firmware...\n")
+
+	log.Printf("Clearing\n")
 	_, err = l.port.Write([]byte("clear\r"))
 	if err != nil {
 		return err
 	}
 
+	log.Printf("Waiting for prompt...\n")
 	err = l.waitForText(promptPrefix)
 	if err != nil {
 		return err
 	}
 
-	_, err = l.port.Write([]byte(fmt.Sprintf("load %d %d\r", len(firmware), checksum())))
+	loadCmd := fmt.Sprintf("load %d %d\r", len(firmware), checksum())
+	log.Printf("Sending load command %s...\n", loadCmd)
+	_, err = l.port.Write([]byte(loadCmd))
 	if err != nil {
 		return err
 	}
 
 	time.Sleep(100 * time.Millisecond)
 
+	log.Printf("Writing firmware...\n")
 	_, err = l.port.Write([]byte{byte(0x02)})
 	if err != nil {
 		return err
@@ -470,23 +481,22 @@ func (l *Adaptor) loadFirmware() (err error) {
 		return err
 	}
 
+	log.Printf("Waiting for prompt...\n")
 	err = l.waitForText(promptPrefix)
 	if err != nil {
 		return err
 	}
 
-	_, err = l.port.Write([]byte(fmt.Sprintf("signature %d\r", len(signature))))
-	if err != nil {
-		return err
-	}
-
-	_, err = l.port.Write([]byte(fmt.Sprintf("signature %d\r", len(signature))))
+	signatureCmd := fmt.Sprintf("signature %d\r", len(signature))
+	log.Printf("Writing signature command [%s]...\n", signatureCmd)
+	_, err = l.port.Write([]byte(signatureCmd))
 	if err != nil {
 		return err
 	}
 
 	time.Sleep(100 * time.Millisecond)
 
+	log.Printf("Writing signature...\n")
 	_, err = l.port.Write([]byte{byte(0x02)})
 	if err != nil {
 		return err
@@ -502,6 +512,7 @@ func (l *Adaptor) loadFirmware() (err error) {
 		return err
 	}
 
+	log.Printf("Waiting for prompt...\n")
 	err = l.waitForText(promptPrefix)
 	if err != nil {
 		return err
