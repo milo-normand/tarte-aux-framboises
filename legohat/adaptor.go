@@ -455,6 +455,8 @@ func (l *Adaptor) resetHat() (err error) {
 	time.Sleep(10 * time.Millisecond)
 
 	time.Sleep(500 * time.Millisecond)
+
+	return nil
 }
 
 func (l *Adaptor) loadFirmware() (err error) {
