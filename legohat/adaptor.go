@@ -221,8 +221,6 @@ func (l *Adaptor) inputsToEvents() {
 				mode := identification[2:]
 
 				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
-					log.Printf("Sending data message [%s] to listener %v...\n", DataMessage, d)
-
 					l.eventDispatcher.input <- DeviceEvent{
 						msgType: DataMessage,
 						mode:    mode,
@@ -297,20 +295,7 @@ func ReadPort(port serial.Port, out chan string) {
 
 // Finalize closes connection to the lego hat
 func (l *Adaptor) Finalize() (err error) {
-	// for _, d := range l.devices {
-	// 	if d != nil {
-	// 		derr := d.Close()
-	// 		if derr != nil {
-	// 			err = derr
-	// 		}
-	// 	}
-	// }
-
-	// Return the first error encounted on all devices close, if any
 	log.Printf("Finalizing adaptor\n")
-	// if err != nil {
-	// 	return err
-	// }
 
 	// Closing serial port
 	l.port.Close()
@@ -563,7 +548,7 @@ func (l *Adaptor) waitForText(text string) (err error) {
 	case <-promptReceived:
 		return nil
 	case <-time.After(5 * time.Second):
-		return fmt.Errorf("timed out waiting for %s prompt from hat", promptPrefix)
+		return fmt.Errorf("timed out waiting for %s from hat", text)
 	}
 }
 
@@ -574,7 +559,7 @@ func (l *Adaptor) scanForText(text string, done chan struct{}) {
 			done <- struct{}{}
 			return
 		} else {
-			log.Printf("Received unexpected line: %s\n", scanner.Text())
+			log.Printf("Received extra line: %s\n", scanner.Text())
 		}
 	}
 }
