@@ -521,8 +521,8 @@ func (l *Adaptor) loadFirmware() (err error) {
 	return nil
 }
 
-func checksum() int {
-	val := 1
+func checksum() uint64 {
+	val := uint64(1)
 
 	for _, b := range firmware {
 		if val&0x80000000 != 0 {
@@ -531,7 +531,7 @@ func checksum() int {
 			val = val << 1
 		}
 
-		val = (val ^ int(b)) & 0xFFFFFFFF
+		val = (val ^ uint64(b)) & 0xFFFFFFFF
 	}
 
 	return val
