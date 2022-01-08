@@ -334,7 +334,7 @@ func initialize(devicePath string, version string) (port serial.Port, err error)
 
 		if strings.HasPrefix(line, firmwareLine) {
 			rawVersion := strings.TrimPrefix(line, firmwareLine)
-			versionParts := strings.Split(rawVersion, " ")
+			versionParts := strings.Fields(rawVersion)
 			if versionParts[0] == version {
 				state = firmwareState
 				detectedVersion = versionParts[0]

@@ -357,7 +357,7 @@ func (l *LegoHatMotorDriver) GetState() (state *MotorState, err error) {
 	}
 
 	data := strings.Trim(string(rawData), " ")
-	parts := strings.Split(data, " ")
+	parts := strings.Fields(data)
 
 	if len(parts) != 3 {
 		return nil, fmt.Errorf("expected 3 integer values but got %d: %s", len(parts), data)
