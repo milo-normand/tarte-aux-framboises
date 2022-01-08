@@ -442,7 +442,7 @@ func (l *Adaptor) resetHat() {
 }
 
 func (l *Adaptor) loadFirmware() (err error) {
-	log.Printf("Loading firmware...\n")
+	log.Printf("Starting firmware loading...\n")
 
 	log.Printf("Clearing\n")
 	_, err = l.port.Write([]byte("clear\r"))
@@ -555,6 +555,8 @@ func (l *Adaptor) scanForText(text string, done chan struct{}) {
 		if strings.HasPrefix(scanner.Text(), text) {
 			done <- struct{}{}
 			return
+		} else {
+			log.Printf("Received unexpected line: %s\n", scanner.Text())
 		}
 	}
 }
