@@ -143,7 +143,7 @@ func (l *Adaptor) SetName(n string) { l.name = n }
 
 // Connect connects to the joystick
 func (l *Adaptor) Connect() (err error) {
-	l.port, err = l.initialize(l.config.serialPath, strings.Replace(version, "\n", "", -1))
+	err = l.initialize(l.config.serialPath, strings.Replace(version, "\n", "", -1))
 	if err != nil {
 		return err
 	}
@@ -342,7 +342,7 @@ func (l *Adaptor) initialize(devicePath string, version string) (err error) {
 
 	state := otherState
 	detectedVersion := "not available"
-	reader := bufio.NewReader(port)
+	reader := bufio.NewReader(l.port)
 	for retries := 0; retries < 5; retries++ {
 		line, err := reader.ReadString('\n')
 		if err != nil {
