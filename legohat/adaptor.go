@@ -61,8 +61,8 @@ const (
 )
 
 const (
-	resetPinNumber    = "GPIO4"
-	bootZeroPinNumber = "GPIO22"
+	resetPinNumber    = "7"
+	bootZeroPinNumber = "15"
 	pinOff            = byte(0)
 	pinOn             = byte(1)
 )
