@@ -2,6 +2,7 @@ package legohat
 
 import (
 	"bufio"
+	_ "embed"
 	"fmt"
 	"io"
 	"log"
@@ -11,11 +12,23 @@ import (
 
 	"go.bug.st/serial"
 	"gobot.io/x/gobot"
+	"gobot.io/x/gobot/drivers/gpio"
 )
+
+//go:embed data/version
+var version string
+
+//go:embed data/firmware.bin
+var firmware []byte
+
+//go:embed data/signature.bin
+var signature []byte
 
 const (
 	firmwareLine   = "Firmware version: "
 	bootloaderLine = "BuildHAT bootloader version"
+	promptPrefix   = "BHBL>"
+	doneLine       = "Done initialising ports"
 )
 
 type LegoHatPortID int
@@ -47,6 +60,13 @@ const (
 	rampDoneMessage         = "ramp done"
 )
 
+const (
+	resetPinNumber    = "4"
+	bootZeroPinNumber = "22"
+	pinOff            = byte(0)
+	pinOn             = byte(1)
+)
+
 type legoDevice interface {
 	io.Closer
 	Info() Device
@@ -64,6 +84,7 @@ type Adaptor struct {
 	devices              map[LegoHatPortID]*deviceRegistration
 	terminateDispatching chan bool
 	toWrite              chan []byte
+	digitalWriter        gpio.DigitalWriter
 	eventDispatcher
 }
 
@@ -91,7 +112,7 @@ func WithSerialPath(serialPath string) Option {
 }
 
 // NewAdaptor returns a new Lego Hat Adaptor.
-func NewAdaptor(opts ...Option) *Adaptor {
+func NewAdaptor(w gpio.DigitalWriter, opts ...Option) *Adaptor {
 	config := Config{
 		serialPath: "/dev/serial0",
 	}
@@ -106,9 +127,10 @@ func NewAdaptor(opts ...Option) *Adaptor {
 		devices:              make(map[LegoHatPortID]*deviceRegistration),
 		terminateDispatching: make(chan bool),
 		toWrite:              make(chan []byte),
+		digitalWriter:        w,
 		eventDispatcher: eventDispatcher{
 			awaitedEvents: make(map[eventKey]eventRegistration),
-			input: make(chan DeviceEvent),
+			input:         make(chan DeviceEvent),
 		},
 	}
 }
@@ -121,7 +143,7 @@ func (l *Adaptor) SetName(n string) { l.name = n }
 
 // Connect connects to the joystick
 func (l *Adaptor) Connect() (err error) {
-	l.port, err = initialize(l.config.serialPath, strings.Replace(version, "\n", "", -1))
+	l.port, err = l.initialize(l.config.serialPath, strings.Replace(version, "\n", "", -1))
 	if err != nil {
 		return err
 	}
@@ -298,7 +320,7 @@ func (l *Adaptor) Finalize() (err error) {
 	return nil
 }
 
-func initialize(devicePath string, version string) (port serial.Port, err error) {
+func (l *Adaptor) initialize(devicePath string, version string) (port serial.Port, err error) {
 	mode := &serial.Mode{
 		BaudRate: 115200,
 		Parity:   serial.NoParity,
@@ -358,12 +380,180 @@ func initialize(devicePath string, version string) (port serial.Port, err error)
 		}
 	}
 
-	if state != firmwareState {
-		return nil, fmt.Errorf("expected state [%s] with version [%s] but got state [%s] and version [%s]", firmwareState, version, state, detectedVersion)
+	if state == needNewFirmwareState {
+		l.resetHat()
+		err = l.loadFirmware()
+		if err != nil {
+			return nil, err
+		}
+
+		err = l.reboot()
+		if err != nil {
+			return nil, err
+		}
+
+		err = l.waitForText(doneLine)
+		if err != nil {
+			return nil, err
+		}
+	} else if state == bootloaderState {
+		err = l.loadFirmware()
+		if err != nil {
+			return nil, err
+		}
+
+		err = l.reboot()
+		if err != nil {
+			return nil, err
+		}
+
+		err = l.waitForText(doneLine)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	port.SetReadTimeout(time.Second * 1)
 	return port, nil
+}
+
+func (l *Adaptor) reboot() (err error) {
+	_, err = l.port.Write([]byte("reboot\r"))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *Adaptor) resetHat() {
+	l.turnPinOff(bootZeroPinNumber)
+	l.turnPinOff(resetPinNumber)
+
+	time.Sleep(10 * time.Millisecond)
+	l.turnPinOn(resetPinNumber)
+	time.Sleep(10 * time.Millisecond)
+
+	time.Sleep(500 * time.Millisecond)
+}
+
+func (l *Adaptor) loadFirmware() (err error) {
+	_, err = l.port.Write([]byte("clear\r"))
+	if err != nil {
+		return err
+	}
+
+	err = l.waitForText(promptPrefix)
+	if err != nil {
+		return err
+	}
+
+	_, err = l.port.Write([]byte(fmt.Sprintf("load %d %d\r", len(firmware), checksum())))
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	_, err = l.port.Write([]byte{byte(0x02)})
+	if err != nil {
+		return err
+	}
+
+	_, err = l.port.Write(firmware)
+	if err != nil {
+		return err
+	}
+
+	_, err = l.port.Write([]byte{byte(0x03), '\r'})
+	if err != nil {
+		return err
+	}
+
+	err = l.waitForText(promptPrefix)
+	if err != nil {
+		return err
+	}
+
+	_, err = l.port.Write([]byte(fmt.Sprintf("signature %d\r", len(signature))))
+	if err != nil {
+		return err
+	}
+
+	_, err = l.port.Write([]byte(fmt.Sprintf("signature %d\r", len(signature))))
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	_, err = l.port.Write([]byte{byte(0x02)})
+	if err != nil {
+		return err
+	}
+
+	_, err = l.port.Write(signature)
+	if err != nil {
+		return err
+	}
+
+	_, err = l.port.Write([]byte{byte(0x03), '\r'})
+	if err != nil {
+		return err
+	}
+
+	err = l.waitForText(promptPrefix)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func checksum() int {
+	val := 1
+
+	for _, b := range firmware {
+		if val&0x80000000 != 0 {
+			val = (val << 1) ^ 0x1d872b41
+		} else {
+			val = val << 1
+		}
+
+		val = (val ^ int(b)) & 0xFFFFFFFF
+	}
+
+	return val
+}
+
+func (l *Adaptor) waitForText(text string) (err error) {
+	promptReceived := make(chan struct{})
+	go l.scanForText(text, promptReceived)
+
+	select {
+	case <-promptReceived:
+		return nil
+	case <-time.After(5 * time.Second):
+		return fmt.Errorf("timed out waiting for %s prompt from hat", promptPrefix)
+	}
+}
+
+func (l *Adaptor) scanForText(text string, done chan struct{}) {
+	scanner := bufio.NewScanner(l.port)
+	for scanner.Scan() {
+		if strings.HasPrefix(scanner.Text(), text) {
+			done <- struct{}{}
+			return
+		}
+	}
+}
+
+func (l *Adaptor) turnPinOff(pin string) {
+	l.digitalWriter.DigitalWrite(pin, pinOff)
+}
+
+func (l *Adaptor) turnPinOn(pin string) {
+	l.digitalWriter.DigitalWrite(pin, pinOn)
 }
 
 func (d *eventDispatcher) awaitMessage(portID LegoHatPortID, msgType DeviceMessageType) (registration eventRegistration) {
@@ -398,12 +588,12 @@ func (d *eventDispatcher) dispatchEvents() {
 
 		if r, ok := d.awaitedEvents[key]; ok {
 			r.conduit <- e
+
+			// Drop the event listener unless it's persistent
 			if !r.persistent {
 				log.Printf("Dropping registration")
 				delete(d.awaitedEvents, key)
 			}
-		} else {
-			log.Printf("Dropping event %s as no one was waiting for it", e.msgType)
 		}
 	}
 }

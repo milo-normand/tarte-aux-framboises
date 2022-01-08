@@ -35,7 +35,7 @@ func main() {
 	log.Printf("Weather is %v\n", weather.Main)
 
 	r := raspi.NewAdaptor()
-	hat := legohat.NewAdaptor()
+	hat := legohat.NewAdaptor(r)
 	motor := legohat.NewLegoMotorDriver(hat, legohat.PortA)
 
 	work := func() {

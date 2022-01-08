@@ -2,7 +2,6 @@ package legohat
 
 import (
 	"context"
-	_ "embed"
 	"fmt"
 	"log"
 	"math"
@@ -18,9 +17,6 @@ const (
 	defaultPLimit = float64(0.7)
 	defaultBias   = float64(0.3)
 )
-
-//go:embed data/version
-var version string
 
 // LegoHatMotorDriver Represents a lego hat motor driver
 type LegoHatMotorDriver struct {
