@@ -364,9 +364,6 @@ func (l *Adaptor) initialize(devicePath string, version string) (err error) {
 		}
 	}
 
-	// TODO: remove once tested
-	state = needNewFirmwareState
-
 	if state == needNewFirmwareState {
 		err = l.resetHat()
 		if err != nil {
@@ -417,7 +414,6 @@ func (l *Adaptor) reboot() (err error) {
 	return nil
 }
 
-// TODO: Fix this, not working!
 func (l *Adaptor) resetHat() (err error) {
 	log.Printf("Resetting hat...\n")
 	err = l.turnPinOff(bootZeroPinNumber)
