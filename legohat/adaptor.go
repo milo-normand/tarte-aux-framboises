@@ -517,6 +517,8 @@ func (l *Adaptor) loadFirmware() (err error) {
 		return err
 	}
 
+	log.Printf("Completed firmware sequence\n")
+
 	return nil
 }
 
