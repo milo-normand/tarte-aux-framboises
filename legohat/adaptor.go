@@ -538,11 +538,12 @@ func checksum() uint64 {
 
 func (l *Adaptor) waitForText(text string, timeout time.Duration) (err error) {
 	log.Printf("Waiting for text [%s]...", text)
-	promptReceived := make(chan struct{})
-	go l.scanForText(text, promptReceived)
+	textReceived := make(chan struct{})
+	go l.scanForText(text, textReceived)
 
 	select {
-	case <-promptReceived:
+	case <-textReceived:
+		log.Printf("%s received!", text)
 		return nil
 	case <-time.After(timeout):
 		return fmt.Errorf("timed out waiting for %s from hat", text)
