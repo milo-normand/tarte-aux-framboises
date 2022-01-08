@@ -384,7 +384,11 @@ func (l *Adaptor) initialize(devicePath string, version string) (err error) {
 	state = needNewFirmwareState
 
 	if state == needNewFirmwareState {
-		l.resetHat()
+		err = l.resetHat()
+		if err != nil {
+			return err
+		}
+
 		err = l.loadFirmware()
 		if err != nil {
 			return err
@@ -429,13 +433,25 @@ func (l *Adaptor) reboot() (err error) {
 	return nil
 }
 
-func (l *Adaptor) resetHat() {
+// TODO: Fix this, not working!
+func (l *Adaptor) resetHat() (err error) {
 	log.Printf("Resetting hat...\n")
-	l.turnPinOff(bootZeroPinNumber)
-	l.turnPinOff(resetPinNumber)
+	err = l.turnPinOff(bootZeroPinNumber)
+	if err != nil {
+		return err
+	}
+
+	err = l.turnPinOff(resetPinNumber)
+	if err != nil {
+		return err
+	}
 
 	time.Sleep(10 * time.Millisecond)
-	l.turnPinOn(resetPinNumber)
+	err = l.turnPinOn(resetPinNumber)
+	if err != nil {
+		return err
+	}
+
 	time.Sleep(10 * time.Millisecond)
 
 	time.Sleep(500 * time.Millisecond)
@@ -561,12 +577,12 @@ func (l *Adaptor) scanForText(text string, done chan struct{}) {
 	}
 }
 
-func (l *Adaptor) turnPinOff(pin string) {
-	l.digitalWriter.DigitalWrite(pin, pinOff)
+func (l *Adaptor) turnPinOff(pin string) (err error) {
+	return l.digitalWriter.DigitalWrite(pin, pinOff)
 }
 
-func (l *Adaptor) turnPinOn(pin string) {
-	l.digitalWriter.DigitalWrite(pin, pinOn)
+func (l *Adaptor) turnPinOn(pin string) (err error) {
+	return l.digitalWriter.DigitalWrite(pin, pinOn)
 }
 
 func (d *eventDispatcher) awaitMessage(portID LegoHatPortID, msgType DeviceMessageType) (registration eventRegistration) {
