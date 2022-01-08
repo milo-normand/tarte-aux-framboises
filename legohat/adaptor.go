@@ -220,13 +220,12 @@ func (l *Adaptor) inputsToEvents() {
 			case len(lineParts[0]) > 2:
 				mode := identification[2:]
 
-				if d, ok := l.devices[LegoHatPortID(portID)]; ok {
-					l.eventDispatcher.input <- DeviceEvent{
-						msgType: DataMessage,
-						mode:    mode,
-						data:    []byte(message),
-					}
+				l.eventDispatcher.input <- DeviceEvent{
+					msgType: DataMessage,
+					mode:    mode,
+					data:    []byte(message),
 				}
+
 			case strings.HasPrefix(message, connectedMessage):
 				rawDeviceType := strings.TrimPrefix(message, connectedMessage)
 				deviceTypeVal, err := strconv.ParseInt(strings.Trim(rawDeviceType, " "), 16, 64)
