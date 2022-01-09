@@ -241,6 +241,7 @@ func (l *Adaptor) inputsToEvents() {
 				}
 
 				l.eventDispatcher.input <- DeviceEvent{
+					portID:  LegoHatPortID(portID),
 					msgType: ConnectedMessage,
 				}
 
@@ -248,6 +249,7 @@ func (l *Adaptor) inputsToEvents() {
 				log.Printf("Device disconnected on port %d", portID)
 
 				l.eventDispatcher.input <- DeviceEvent{
+					portID:  LegoHatPortID(portID),
 					msgType: DisconnectedMessage,
 				}
 
@@ -255,6 +257,7 @@ func (l *Adaptor) inputsToEvents() {
 				log.Printf("Device timeout on port %d", portID)
 
 				l.eventDispatcher.input <- DeviceEvent{
+					portID:  LegoHatPortID(portID),
 					msgType: TimeoutMessage,
 				}
 
@@ -262,12 +265,14 @@ func (l *Adaptor) inputsToEvents() {
 				log.Printf("Pulse done message on port %d", portID)
 
 				l.eventDispatcher.input <- DeviceEvent{
+					portID:  LegoHatPortID(portID),
 					msgType: PulseDoneMessage,
 				}
 			case strings.HasPrefix(message, rampDoneMessage):
 				log.Printf("Ramp done message on port %d", portID)
 
 				l.eventDispatcher.input <- DeviceEvent{
+					portID:  LegoHatPortID(portID),
 					msgType: RampDoneMessage,
 				}
 			}
