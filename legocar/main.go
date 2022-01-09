@@ -37,7 +37,10 @@ func main() {
 				if angle != currentAngle {
 					log.Printf("Adjusting front motor to degree %d", angle)
 
-					direction.RunToAngle(angle, legohat.WithSpeed(100))
+					_, err := direction.RunToAngle(angle, legohat.WithSpeed(100))
+					if err != nil {
+						log.Printf("error setting angle: %s", err.Error())
+					}
 					currentAngle = angle
 				}
 			}
@@ -50,7 +53,10 @@ func main() {
 				speed := int(float64(val) / 32768.0 * float64(maxSpeed))
 				log.Printf("Adjusting speed motor to %d", speed)
 
-				motor.TurnOn(speed)
+				err := motor.TurnOn(speed)
+				if err != nil {
+					log.Printf("error setting forward speed: %s", err.Error())
+				}
 			}
 		})
 	}
