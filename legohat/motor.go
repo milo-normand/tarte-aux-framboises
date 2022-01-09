@@ -374,7 +374,7 @@ func (l *LegoHatMotorDriver) runToAngle(angle int, method rotationMethod, opts .
 
 	pos := float64(state.position) / 360.0
 	speed := float64(runSpec.speed) * 0.05
-	durationInSeconds := math.Abs((float64(newPosition) - float64(state.position)) / float64(speed))
+	durationInSeconds := math.Abs((float64(newPosition) - float64(pos)) / float64(speed))
 	timeoutDuration := time.Millisecond * time.Duration((500 + int(math.Ceil(durationInSeconds)*1000)))
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
