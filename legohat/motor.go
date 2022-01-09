@@ -206,7 +206,7 @@ func (l *LegoHatMotorDriver) TurnOn(speed int) (err error) {
 	}
 
 	for _, d := range l.devices {
-		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; select 0 ; pid %d 0 0 s1 1 0 0.003 0.01 0 100; set %d\r", d.id, d.id, speed))
+		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; pid %d 0 0 s1 1 0 0.003 0.01 0 100; set %d\r", d.id, d.id, speed))
 		d.currentMode = 0
 	}
 
@@ -289,7 +289,7 @@ func (l *LegoHatMotorDriver) RunForDegrees(degrees int, opts ...RunOption) (done
 	for _, d := range l.devices {
 		registration := l.adaptor.awaitMessage(d.id, RampDoneMessage)
 
-		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; select 0 ; pid %d 0 1 s4 0.0027777778 0 5 0 .1 3 ; set ramp %.2f %.2f %.2f 0\r", d.id, d.id, currentDegree, targetPosition, durationInSeconds))
+		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; pid %d 0 1 s4 0.0027777778 0 5 0 .1 3 ; set ramp %.2f %.2f %.2f 0\r", d.id, d.id, currentDegree, targetPosition, durationInSeconds))
 
 		_, err := d.waitForEventOnDevice(ctx, RampDoneMessage, registration.conduit)
 		if err != nil {

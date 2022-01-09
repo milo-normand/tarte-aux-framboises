@@ -26,8 +26,8 @@ func main() {
 	work := func() {
 		log.Printf("Started lego hat")
 
-		ctrl.On(joystick.LeftY, func(data interface{}) {
-			fmt.Println("left_y", data)
+		ctrl.On(joystick.RightX, func(data interface{}) {
+			fmt.Println("right_x", data)
 			if val, ok := data.(int16); !ok {
 				log.Printf("error reading int16 value from %v\n", data)
 			} else {
@@ -37,19 +37,15 @@ func main() {
 				direction.RunForDegrees(degree)
 			}
 		})
-		ctrl.On(joystick.RightX, func(data interface{}) {
-			fmt.Println("right_x", data)
+		ctrl.On(joystick.LeftY, func(data interface{}) {
+			fmt.Println("left_y", data)
 			if val, ok := data.(int16); !ok {
 				log.Printf("error reading int16 value from %v\n", data)
 			} else {
 				speed := int(float64(val) / 32768.0 * float64(maxSpeed))
 				log.Printf("Adjusting speed motor to %d", speed)
 
-				if speed == 0 {
-					motor.TurnOff()
-				} else {
-					motor.TurnOn(speed)
-				}
+				motor.TurnOn(speed)
 			}
 		})
 	}
