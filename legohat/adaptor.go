@@ -8,6 +8,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"go.bug.st/serial"
@@ -91,6 +92,7 @@ type Adaptor struct {
 type eventDispatcher struct {
 	awaitedEvents map[eventKey]eventRegistration
 	input         chan DeviceEvent
+	mutex         sync.RMutex
 }
 
 type eventRegistration struct {
@@ -592,7 +594,9 @@ func (d *eventDispatcher) awaitAllMessages(portID LegoHatPortID, msgType DeviceM
 		conduit:    receiver,
 	}
 
+	d.mutex.Lock()
 	d.awaitedEvents[eventKey{msgType: msgType, portID: portID}] = registration
+	d.mutex.Unlock()
 
 	return registration
 }
@@ -603,6 +607,9 @@ func (d *eventDispatcher) dispatchEvents() {
 			msgType: e.msgType,
 			portID:  e.portID,
 		}
+
+		d.mutex.Rlock()
+		defer d.mutex.RUnlock()
 
 		if r, ok := d.awaitedEvents[key]; ok {
 			r.conduit <- e
