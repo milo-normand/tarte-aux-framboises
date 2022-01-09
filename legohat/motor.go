@@ -353,6 +353,8 @@ func (l *LegoHatMotorDriver) runToAngle(angle int, method rotationMethod, opts .
 		return nil, err
 	}
 
+	log.Printf("Current state is %s\n", state)
+
 	angleDiff := (angle-state.absolutePosition+180)%360 - 180
 	newPosition := (state.position + angleDiff) / 360
 
@@ -429,6 +431,10 @@ type MotorState struct {
 	speed            int
 	absolutePosition int
 	position         int
+}
+
+func (m *MotorState) String() string {
+	return fmt.Sprintf("speed: %d, absolutePosition: %d, position: %d", m.speed, m.absolutePosition, m.position)
 }
 
 func (l *LegoHatMotorDriver) GetState() (state *MotorState, err error) {
