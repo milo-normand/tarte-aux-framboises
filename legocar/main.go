@@ -93,6 +93,7 @@ func main() {
 	work := func() {
 		log.Printf("Started lego hat")
 		direction.RunToAngle(0, legohat.WithSpeed(100))
+		motor.SetPLimit(1.0)
 
 		state, err := direction.GetState()
 		if err != nil {
