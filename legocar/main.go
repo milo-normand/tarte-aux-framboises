@@ -27,7 +27,7 @@ type directionController struct {
 	done          chan os.Signal
 }
 
-func (d *directionController) pulseValue() {
+func (d *directionController) driveUpdates() {
 	ticker := time.NewTicker(100 * time.Millisecond)
 
 	for {
@@ -104,7 +104,7 @@ func main() {
 			log.Printf("Current state: %s\n", state)
 		}
 
-		go directionCtrl.pulseValue()
+		go directionCtrl.driveUpdates()
 		go directionUpdater.updateDirection()
 
 		ctrl.On(joystick.RightX, func(data interface{}) {
