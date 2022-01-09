@@ -92,7 +92,7 @@ type Adaptor struct {
 type eventDispatcher struct {
 	awaitedEvents map[eventKey]eventRegistration
 	input         chan DeviceEvent
-	mutex         sync.RMutex
+	mutex         sync.RWMutex
 }
 
 type eventRegistration struct {
