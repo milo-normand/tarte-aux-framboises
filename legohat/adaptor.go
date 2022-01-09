@@ -608,7 +608,7 @@ func (d *eventDispatcher) dispatchEvents() {
 			portID:  e.portID,
 		}
 
-		d.mutex.Rlock()
+		d.mutex.RLock()
 		defer d.mutex.RUnlock()
 
 		if r, ok := d.awaitedEvents[key]; ok {
