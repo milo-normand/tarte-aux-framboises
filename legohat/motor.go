@@ -356,7 +356,7 @@ func (l *LegoHatMotorDriver) runToAngle(angle int, method rotationMethod, opts .
 	log.Printf("Current state is %s\n", state)
 
 	angleDiff := (angle-state.absolutePosition+180)%360 - 180
-	newPosition := (state.position + angleDiff) / 360
+	newPosition := float64(state.position+angleDiff) / 360.0
 
 	// clockwiseDiff := (angle - state.absolutePosition) % 360
 	// counterDiff := (state.absolutePosition - angle) % 360
