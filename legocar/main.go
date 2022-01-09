@@ -34,7 +34,7 @@ func main() {
 				degree := int(float64(val) / 32768.0 * float64(maxAngle))
 				log.Printf("Adjusting front motor to degree %d", degree)
 
-				direction.RunForDegrees(degree)
+				direction.RunForDegrees(degree, legohat.WithSpeed(100))
 			}
 		})
 		ctrl.On(joystick.LeftY, func(data interface{}) {

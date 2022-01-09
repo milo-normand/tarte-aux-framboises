@@ -276,6 +276,7 @@ func (l *LegoHatMotorDriver) RunForDegrees(degrees int, opts ...RunOption) (done
 	// TODO: understand where the multiplication factor comes from
 	actualSpeedPerSecond := float64(runSpec.speed) * 0.05
 	durationInSeconds := math.Abs((targetPosition - currentDegree) / actualSpeedPerSecond)
+	log.Printf("Duration of degree rotation: %.2f\n", durationInSeconds)
 	timeoutDuration := time.Millisecond * time.Duration((500 + int(math.Ceil(durationInSeconds)*1000)))
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
