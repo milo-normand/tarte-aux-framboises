@@ -24,8 +24,7 @@ type LegoHatMotorDriver struct {
 	Active     bool
 	halt       chan bool
 	connection gobot.Connection
-	adaptor    *Adaptor
-	devices    []*deviceRegistration
+	deviceDriver
 
 	gobot.Eventer
 }
@@ -42,12 +41,14 @@ func WithAdditionalMotor(portID LegoHatPortID) func(driver *LegoHatMotorDriver) 
 func NewLegoMotorDriver(a *Adaptor, portID LegoHatPortID, opts ...MotorDriverOption) *LegoHatMotorDriver {
 	b := &LegoHatMotorDriver{
 		name:       gobot.DefaultName(fmt.Sprintf("LegoHat %s", Motor)),
-		adaptor:    a,
 		connection: a,
 		Active:     false,
 		Eventer:    gobot.NewEventer(),
 		halt:       make(chan bool),
-		devices:    make([]*deviceRegistration, 0),
+		deviceDriver: deviceDriver{
+			adaptor: a,
+			devices: make([]*deviceRegistration, 0),
+		},
 	}
 
 	b.devices = append(b.devices, b.adaptor.registerDevice(portID, Motor))
@@ -86,46 +87,6 @@ func (l *LegoHatMotorDriver) Start() (err error) {
 	}
 
 	return nil
-}
-
-func (l *LegoHatMotorDriver) waitForConnect() (err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	for _, d := range l.devices {
-		registration := l.adaptor.awaitMessage(d.id, ConnectedMessage)
-
-		d.toDevice <- []byte(fmt.Sprintf("port %d ; select ; echo 0\r", d.id))
-		d.toDevice <- []byte(fmt.Sprintf("list\r"))
-
-		log.Printf("Waiting for %s to connect on port %d...\n", Motor, d.id)
-
-		_, err := d.waitForEventOnDevice(ctx, ConnectedMessage, registration.conduit)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (d *deviceRegistration) waitForEventOnDevice(ctx context.Context, awaitedMsgType DeviceMessageType, conduit <-chan DeviceEvent) (rawData []byte, err error) {
-	select {
-	case e := <-conduit:
-		log.Printf("Received message on port %d: %v\n", d.id, e)
-		switch e.msgType {
-		case awaitedMsgType:
-			log.Printf("Got awaited message %s on %s device at port %d", awaitedMsgType, d.class, d.id)
-			return e.data, nil
-		case TimeoutMessage:
-			log.Printf("Got awaited message %s on %s device at port %d", timeoutMessage, d.class, d.id)
-			return e.data, fmt.Errorf("received timeout from %s device on port %d", d.class, d.id)
-		}
-	case <-ctx.Done():
-		return nil, fmt.Errorf("timed out waiting for message %s for device %s on port %d", awaitedMsgType, d.class, d.id)
-	}
-
-	return nil, fmt.Errorf("unreachable code reached")
 }
 
 func (l *LegoHatMotorDriver) SetPLimit(plimit float64) (err error) {
