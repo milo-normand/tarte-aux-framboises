@@ -409,7 +409,7 @@ func (l *LegoHatMotorDriver) RunForDuration(duration time.Duration, opts ...RunO
 	for _, d := range l.devices {
 		registration := l.adaptor.awaitMessage(d.id, PulseDoneMessage)
 
-		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; select 0 ; pid %d 0 0 s1 1 0 0.003 0.01 0 100; set pulse %d 0.0 %.2f 0\r", d.id, d.id, runSpec.speed, duration.Seconds()))
+		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; pid %d 0 0 s1 1 0 0.003 0.01 0 100; set pulse %d 0.0 %.2f 0\r", d.id, d.id, runSpec.speed, duration.Seconds()))
 
 		_, err := d.waitForEventOnDevice(ctx, PulseDoneMessage, registration.conduit)
 		if err != nil {

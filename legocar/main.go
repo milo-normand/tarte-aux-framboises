@@ -52,7 +52,7 @@ func main() {
 
 	robot := gobot.NewRobot("legocar",
 		[]gobot.Connection{r, hat, joystickAdaptor},
-		[]gobot.Device{motor, ctrl},
+		[]gobot.Device{motor, direction, ctrl},
 		work,
 	)
 
