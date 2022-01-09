@@ -54,13 +54,13 @@ func (l *LegoHatLightDriver) Start() (err error) {
 
 func (l *LegoHatLightDriver) TurnOn() {
 	for _, d := range l.devices {
-		d.toDevice <- []byte(fmt.Sprintf("port %d ; plimit 1 ; on\r", d.id))
+		d.toDevice <- []byte(fmt.Sprintf("port %d ; plimit 1 ; set -1\r", d.id))
 	}
 }
 
 func (l *LegoHatLightDriver) TurnOff() {
 	for _, d := range l.devices {
-		d.toDevice <- []byte(fmt.Sprintf("port %d ; plimit 1 ; off\r", d.id))
+		d.toDevice <- []byte(fmt.Sprintf("port %d ; plimit 1 ; set 1\r", d.id))
 	}
 }
 
