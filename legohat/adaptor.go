@@ -148,13 +148,13 @@ func (l *Adaptor) Connect() (err error) {
 		return err
 	}
 
-	go l.inputsToEvents()
-	go l.dispatchEvents()
-
 	for _, d := range l.devices {
 		log.Printf("Starting dispatching routine for device on port %d...\n", d.id)
 		go l.dispatchInstructions(d.toDevice)
 	}
+
+	go l.inputsToEvents()
+	go l.dispatchEvents()
 
 	go l.writeInstructions()
 
