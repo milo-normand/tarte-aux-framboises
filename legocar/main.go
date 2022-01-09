@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	maxAngle = 60
+	maxAngle = 80
 	maxSpeed = 100
 )
 
@@ -32,7 +32,7 @@ func main() {
 
 		ctrl.On(joystick.RightX, func(data interface{}) {
 			fmt.Println("right_x", data)
-			if time.Now().Sub(lastUpdate) > 1*time.Second {
+			if time.Now().Sub(lastUpdate) > 500*time.Millisecond {
 				if val, ok := data.(int16); !ok {
 					log.Printf("error reading int16 value from %v\n", data)
 				} else {
