@@ -612,18 +612,16 @@ func (d *eventDispatcher) dispatchEvents() {
 			portID:  e.portID,
 		}
 
-		d.mutex.RLock()
+		d.mutex.Lock()
 		if r, ok := d.awaitedEvents[key]; ok {
 			r.conduit <- e
 
 			// Drop the event listener unless it's persistent
 			if !r.persistent {
 				log.Printf("Dropping registration")
-				d.mutex.Lock()
 				delete(d.awaitedEvents, key)
-				d.mutex.Unlock()
 			}
 		}
-		d.mutex.RUnlock()
+		d.mutex.Unlock()
 	}
 }
