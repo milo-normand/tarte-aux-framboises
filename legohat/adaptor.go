@@ -582,7 +582,9 @@ func (d *eventDispatcher) awaitMessage(portID LegoHatPortID, msgType DeviceMessa
 		conduit: receiver,
 	}
 
+	d.mutex.Lock()
 	d.awaitedEvents[eventKey{msgType: msgType, portID: portID}] = registration
+	d.mutex.Unlock()
 
 	return registration
 }

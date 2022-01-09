@@ -36,7 +36,7 @@ func (d *directionController) pulseValue() {
 			close(d.listener)
 			return
 		case t := <-ticker.C:
-			convertedAngle := float64(d.stickValue) / 32768.0 * float64(maxAngle)
+			convertedAngle := float64(d.stickValue) / -32768.0 * float64(maxAngle)
 
 			if abs(int(convertedAngle)-d.lastDirection) > 5 || t.Sub(d.lastUpdate) > 1*time.Second {
 				d.listener <- int(convertedAngle)
