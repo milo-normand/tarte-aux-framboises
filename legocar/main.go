@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	maxAngle = 60
+	maxAngle = 90
 	maxSpeed = 100
 )
 
