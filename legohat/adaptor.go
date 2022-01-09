@@ -221,6 +221,7 @@ func (l *Adaptor) inputsToEvents() {
 				mode := identification[2:]
 
 				l.eventDispatcher.input <- DeviceEvent{
+					portID:  LegoHatPortID(portID),
 					msgType: DataMessage,
 					mode:    mode,
 					data:    []byte(message),
