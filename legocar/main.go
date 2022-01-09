@@ -3,9 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
-	_ "net/http"
-	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -41,7 +38,7 @@ func (d *directionController) driveUpdates() {
 		case t := <-ticker.C:
 			convertedAngle := float64(d.stickValue) / -32768.0 * float64(maxAngle)
 
-			if abs(int(convertedAngle)-d.lastDirection) > 5 || t.Sub(d.lastUpdate) > 1*time.Second {
+			if abs(int(convertedAngle)-d.lastDirection) > 5 || (t.Sub(d.lastUpdate) > 1*time.Second && abs(int(convertedAngle)-d.lastDirection) > 0) {
 				d.listener <- int(convertedAngle)
 				d.lastDirection = int(convertedAngle)
 			}
@@ -74,10 +71,6 @@ func (u *directionUpdater) updateDirection() {
 }
 
 func main() {
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
-
 	r := raspi.NewAdaptor()
 	hat := legohat.NewAdaptor(r)
 	motor := legohat.NewLegoMotorDriver(hat, legohat.PortA)
