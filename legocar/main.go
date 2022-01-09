@@ -75,6 +75,7 @@ func main() {
 	hat := legohat.NewAdaptor(r)
 	motor := legohat.NewLegoMotorDriver(hat, legohat.PortA)
 	direction := legohat.NewLegoMotorDriver(hat, legohat.PortB)
+	light := legohat.NewLegoLightDriver(hat, legohat.PortC)
 	joystickAdaptor := joystick.NewAdaptor()
 	ctrl := joystick.NewDriver(joystickAdaptor, "dualshock4")
 
@@ -96,6 +97,7 @@ func main() {
 		direction.RunToAngle(0, legohat.WithSpeed(100))
 		direction.SetBias(0.5)
 		motor.SetPLimit(1.0)
+		light.TurnOn()
 
 		state, err := direction.GetState()
 		if err != nil {
@@ -134,7 +136,7 @@ func main() {
 
 	robot := gobot.NewRobot("legocar",
 		[]gobot.Connection{r, hat, joystickAdaptor},
-		[]gobot.Device{motor, direction, ctrl},
+		[]gobot.Device{motor, direction, ctrl, light},
 		work,
 	)
 
