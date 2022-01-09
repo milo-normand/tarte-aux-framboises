@@ -577,28 +577,30 @@ func (l *Adaptor) turnPinOn(pin string) (err error) {
 }
 
 func (d *eventDispatcher) awaitMessage(portID LegoHatPortID, msgType DeviceMessageType) (registration eventRegistration) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	receiver := make(chan DeviceEvent)
 	registration = eventRegistration{
 		conduit: receiver,
 	}
 
-	d.mutex.Lock()
 	d.awaitedEvents[eventKey{msgType: msgType, portID: portID}] = registration
-	d.mutex.Unlock()
 
 	return registration
 }
 
 func (d *eventDispatcher) awaitAllMessages(portID LegoHatPortID, msgType DeviceMessageType) (registration eventRegistration) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	receiver := make(chan DeviceEvent)
 	registration = eventRegistration{
 		persistent: true,
 		conduit:    receiver,
 	}
 
-	d.mutex.Lock()
 	d.awaitedEvents[eventKey{msgType: msgType, portID: portID}] = registration
-	d.mutex.Unlock()
 
 	return registration
 }
