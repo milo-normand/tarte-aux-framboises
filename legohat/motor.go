@@ -303,6 +303,101 @@ func (l *LegoHatMotorDriver) RunForDegrees(degrees int, opts ...RunOption) (done
 	return done, nil
 }
 
+type rotationMethod string
+
+const (
+	shortest         rotationMethod = "shortest"
+	clockwise        rotationMethod = "clockwise"
+	counterClockwise rotationMethod = "counterClockwise"
+)
+
+func (l *LegoHatMotorDriver) RunToAngle(angle int, opts ...RunOption) (done chan struct{}, err error) {
+	done = make(chan struct{}, 1)
+
+	runSpec := runSpec{
+		speed: 100,
+	}
+
+	for _, apply := range opts {
+		apply(&runSpec)
+	}
+
+	err = runSpec.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	if runSpec.speed < 0 {
+		return nil, fmt.Errorf("speed must be between 0 and 100")
+	}
+
+	if angle < -180 || angle > 180 {
+		return nil, fmt.Errorf("angle must be between -180 and 180")
+	}
+
+	return l.runToAngle(angle, shortest, opts...)
+}
+
+func (l *LegoHatMotorDriver) runToAngle(angle int, method rotationMethod, opts ...RunOption) (done chan struct{}, err error) {
+	done = make(chan struct{}, 1)
+	runSpec := runSpec{
+		speed: defaultSpeed,
+	}
+
+	for _, apply := range opts {
+		apply(&runSpec)
+	}
+
+	state, err := l.GetState()
+	if err != nil {
+		return nil, err
+	}
+
+	angleDiff := (angle-state.absolutePosition+180)%360 - 180
+	newPosition := (state.position + angleDiff) / 360
+
+	// clockwiseDiff := (angle - state.absolutePosition) % 360
+	// counterDiff := (state.absolutePosition - angle) % 360
+
+	// direction := 1
+	// if angleDiff > 0 {
+	// 	direction = 1
+	// }
+
+	// TODO: implement clockwise and counterclockwise
+	// switch method {
+	// case clockwise:
+	// 	newPosition = (state.position + clockwiseDiff)
+	// }
+
+	pos := state.position / 360.0
+	speed := float64(runSpec.speed) * 0.05
+	durationInSeconds := math.Abs((float64(newPosition) - float64(state.position)) / speed)
+	timeoutDuration := time.Millisecond * time.Duration((500 + int(math.Ceil(durationInSeconds)*1000)))
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
+	defer cancel()
+	defer func() {
+		l.TurnOff()
+		done <- struct{}{}
+	}()
+
+	for _, d := range l.devices {
+		registration := l.adaptor.awaitMessage(d.id, RampDoneMessage)
+
+		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; pid %d 0 1 s4 0.0027777778 0 5 0 .1 3 ; set ramp %d %d %.2f 0\r", d.id, d.id, pos, newPosition, durationInSeconds))
+
+		_, err := d.waitForEventOnDevice(ctx, RampDoneMessage, registration.conduit)
+		if err != nil {
+			return nil, err
+		}
+
+		d.currentMode = 0
+	}
+
+	return done, nil
+}
+
 func (l *LegoHatMotorDriver) GetPosition() (pos int, err error) {
 	s, err := l.GetState()
 	if err != nil {

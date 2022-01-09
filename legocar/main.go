@@ -23,6 +23,8 @@ func main() {
 	joystickAdaptor := joystick.NewAdaptor()
 	ctrl := joystick.NewDriver(joystickAdaptor, "dualshock4")
 
+	currentAngle := 0
+
 	work := func() {
 		log.Printf("Started lego hat")
 
@@ -31,10 +33,13 @@ func main() {
 			if val, ok := data.(int16); !ok {
 				log.Printf("error reading int16 value from %v\n", data)
 			} else {
-				degree := int(float64(val) / 32768.0 * float64(maxAngle))
-				log.Printf("Adjusting front motor to degree %d", degree)
+				angle := int(float64(val) / 32768.0 * float64(maxAngle))
+				if angle != currentAngle {
+					log.Printf("Adjusting front motor to degree %d", angle)
 
-				direction.RunForDegrees(degree, legohat.WithSpeed(100))
+					direction.RunToAngle(angle, legohat.WithSpeed(100))
+					currentAngle = angle
+				}
 			}
 		})
 		ctrl.On(joystick.LeftY, func(data interface{}) {
