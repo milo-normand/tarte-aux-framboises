@@ -387,7 +387,7 @@ func (l *LegoHatMotorDriver) runToAngle(angle int, method rotationMethod, opts .
 	for _, d := range l.devices {
 		registration := l.adaptor.awaitMessage(d.id, RampDoneMessage)
 
-		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; pid %d 0 1 s4 0.0027777778 0 5 0 .1 3 ; set ramp %d %d %.2f 0\r", d.id, d.id, pos, newPosition, durationInSeconds))
+		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; pid %d 0 1 s4 0.0027777778 0 5 0 .1 3 ; set ramp %.2f %.2f %.2f 0\r", d.id, d.id, pos, newPosition, durationInSeconds))
 
 		_, err := d.waitForEventOnDevice(ctx, RampDoneMessage, registration.conduit)
 		if err != nil {
