@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	_ "net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -71,6 +73,10 @@ func (u *directionUpdater) updateDirection() {
 }
 
 func main() {
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+
 	r := raspi.NewAdaptor()
 	hat := legohat.NewAdaptor(r)
 	motor := legohat.NewLegoMotorDriver(hat, legohat.PortA)
