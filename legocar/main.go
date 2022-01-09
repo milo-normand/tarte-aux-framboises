@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 
 	"github.com/milo-normand/tarte-aux-framboises/legohat"
 	"gobot.io/x/gobot"
@@ -23,7 +24,7 @@ func main() {
 	joystickAdaptor := joystick.NewAdaptor()
 	ctrl := joystick.NewDriver(joystickAdaptor, "dualshock4")
 
-	currentAngle := 0
+	currentAngle := 0.
 
 	work := func() {
 		log.Printf("Started lego hat")
@@ -33,11 +34,11 @@ func main() {
 			if val, ok := data.(int16); !ok {
 				log.Printf("error reading int16 value from %v\n", data)
 			} else {
-				angle := int(float64(val) / 32768.0 * float64(maxAngle))
-				if angle != currentAngle {
-					log.Printf("Adjusting front motor to degree %d", angle)
+				angle := float64(val) / 32768.0 * float64(maxAngle)
+				if math.Abs(angle-currentAngle) > 5 {
+					log.Printf("Adjusting front motor to degree %d", int(angle))
 
-					_, err := direction.RunToAngle(angle, legohat.WithSpeed(100))
+					_, err := direction.RunToAngle(int(angle), legohat.WithSpeed(100))
 					if err != nil {
 						log.Printf("error setting angle: %s", err.Error())
 					}
