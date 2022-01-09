@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	maxAngle = 80
+	maxAngle = 60
 	maxSpeed = 100
 )
 
@@ -60,9 +60,9 @@ type directionUpdater struct {
 
 func (u *directionUpdater) updateDirection() {
 	for v := range u.input {
-		log.Printf("Adjusting front motor to angle %d", v)
+		log.Printf("Adjusting front motor to angle %d\n", v)
 
-		_, err := u.directionMotor.RunToAngle(v, legohat.WithSpeed(100))
+		_, err := u.directionMotor.RunToAngle(v)
 		if err != nil {
 			log.Printf("error setting angle: %s", err.Error())
 		}
@@ -93,6 +93,7 @@ func main() {
 	work := func() {
 		log.Printf("Started lego hat")
 		direction.RunToAngle(0, legohat.WithSpeed(100))
+		direction.SetBias(0.5)
 		motor.SetPLimit(1.0)
 
 		state, err := direction.GetState()
