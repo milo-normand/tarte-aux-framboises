@@ -75,12 +75,12 @@ func (l *LegoHatMotorDriver) Start() (err error) {
 		return err
 	}
 
-	err = l.setPLimit(defaultPLimit)
+	err = l.SetPLimit(defaultPLimit)
 	if err != nil {
 		return err
 	}
 
-	err = l.setBias(defaultBias)
+	err = l.SetBias(defaultBias)
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func (d *deviceRegistration) waitForEventOnDevice(ctx context.Context, awaitedMs
 	return nil, fmt.Errorf("unreachable code reached")
 }
 
-func (l *LegoHatMotorDriver) setPLimit(plimit float64) (err error) {
+func (l *LegoHatMotorDriver) SetPLimit(plimit float64) (err error) {
 	if plimit < 0 || plimit > 1 {
 		return fmt.Errorf("plimit should be between 0 and 1 but was %.2f", plimit)
 	}
@@ -140,7 +140,7 @@ func (l *LegoHatMotorDriver) setPLimit(plimit float64) (err error) {
 	return nil
 }
 
-func (l *LegoHatMotorDriver) setBias(bias float64) (err error) {
+func (l *LegoHatMotorDriver) SetBias(bias float64) (err error) {
 	if bias < 0 || bias > 1 {
 		return fmt.Errorf("bias should be between 0 and 1 but was %.2f", bias)
 	}
