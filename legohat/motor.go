@@ -341,7 +341,7 @@ func (l *LegoHatMotorDriver) RunToAngle(angle int, opts ...RunOption) (done chan
 func (l *LegoHatMotorDriver) runToAngle(angle int, method rotationMethod, opts ...RunOption) (done chan struct{}, err error) {
 	done = make(chan struct{}, 1)
 	runSpec := runSpec{
-		speed: defaultSpeed,
+		speed: 100,
 	}
 
 	for _, apply := range opts {
