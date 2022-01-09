@@ -13,7 +13,6 @@ type LegoHatLightDriver struct {
 	name       string
 	halt       chan bool
 	connection gobot.Connection
-	adaptor    *Adaptor
 	deviceDriver
 
 	gobot.Eventer
