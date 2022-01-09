@@ -7,3 +7,5 @@ require (
 	go.bug.st/serial v1.3.3
 	gobot.io/x/gobot v1.15.0
 )
+
+replace gobot.io/x/gobot => /home/pi/gohack/gobot.io/x/gobot
