@@ -87,6 +87,13 @@ func main() {
 		log.Printf("Started lego hat")
 		direction.RunToAngle(0, legohat.WithSpeed(100))
 
+		state, err := direction.GetState()
+		if err != nil {
+			log.Printf("error getting state: %s", err.Error())
+		} else {
+			log.Printf("Current state: %s\n", state)
+		}
+
 		go directionCtrl.pulseValue()
 		go directionUpdater.updateDirection()
 

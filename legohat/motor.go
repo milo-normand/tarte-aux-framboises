@@ -355,7 +355,33 @@ func (l *LegoHatMotorDriver) runToAngle(angle int, method rotationMethod, opts .
 
 	log.Printf("Current state is %s\n", state)
 
-	angleDiff := (angle-state.absolutePosition+180)%360 - 180
+	timeoutDuration := time.Second * 10
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
+	defer cancel()
+	defer func() {
+		l.TurnOff()
+		done <- struct{}{}
+	}()
+
+	for _, d := range l.devices {
+		registration := l.adaptor.awaitMessage(d.id, RampDoneMessage)
+		cmd := toAngleCommand(d.id, *state, angle, runSpec.speed, method)
+
+		d.toDevice <- []byte(cmd)
+
+		_, err := d.waitForEventOnDevice(ctx, RampDoneMessage, registration.conduit)
+		if err != nil {
+			return nil, err
+		}
+
+		d.currentMode = 0
+	}
+
+	return done, nil
+}
+
+func toAngleCommand(portID LegoHatPortID, state MotorState, targetAngle int, speed int, method rotationMethod) (cmd string) {
+	angleDiff := (targetAngle-state.absolutePosition+180)%360 - 180
 	newPosition := float64(state.position+angleDiff) / 360.0
 
 	// clockwiseDiff := (angle - state.absolutePosition) % 360
@@ -373,31 +399,10 @@ func (l *LegoHatMotorDriver) runToAngle(angle int, method rotationMethod, opts .
 	// }
 
 	pos := float64(state.position) / 360.0
-	speed := float64(runSpec.speed) * 0.05
-	durationInSeconds := math.Abs(float64(newPosition)-float64(pos)) / speed
+	rotationSpeed := float64(speed) * 0.05
+	durationInSeconds := math.Abs(float64(newPosition)-float64(pos)) / rotationSpeed
 
-	timeoutDuration := time.Millisecond * time.Duration((500 + int(math.Ceil(durationInSeconds)*1000)))
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
-	defer cancel()
-	defer func() {
-		l.TurnOff()
-		done <- struct{}{}
-	}()
-
-	for _, d := range l.devices {
-		registration := l.adaptor.awaitMessage(d.id, RampDoneMessage)
-
-		d.toDevice <- []byte(fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; pid %d 0 1 s4 0.0027777778 0 5 0 .1 3 ; set ramp %f %f %f 0\r", d.id, d.id, pos, newPosition, durationInSeconds))
-
-		_, err := d.waitForEventOnDevice(ctx, RampDoneMessage, registration.conduit)
-		if err != nil {
-			return nil, err
-		}
-
-		d.currentMode = 0
-	}
-
-	return done, nil
+	return fmt.Sprintf("port %d ; combi 0 1 0 2 0 3 0 ; pid %d 0 1 s4 0.0027777778 0 5 0 .1 3 ; set ramp %f %f %f 0\r", portID, portID, pos, newPosition, durationInSeconds)
 }
 
 func (l *LegoHatMotorDriver) GetPosition() (pos int, err error) {
