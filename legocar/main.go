@@ -23,21 +23,22 @@ type directionController struct {
 	stickValue    int16
 	listener      chan int
 	lastDirection int
+	lastUpdate    time.Time
 	done          chan os.Signal
 }
 
 func (d *directionController) pulseValue() {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(100 * time.Millisecond)
 
 	for {
 		select {
 		case <-d.done:
 			close(d.listener)
 			return
-		case <-ticker.C:
+		case t := <-ticker.C:
 			convertedAngle := float64(d.stickValue) / 32768.0 * float64(maxAngle)
 
-			if abs(int(convertedAngle)-d.lastDirection) > 5 {
+			if abs(int(convertedAngle)-d.lastDirection) > 5 || t.Sub(d.lastUpdate) > 1*time.Second {
 				d.listener <- int(convertedAngle)
 				d.lastDirection = int(convertedAngle)
 			}
