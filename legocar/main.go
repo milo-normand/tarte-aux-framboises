@@ -20,44 +20,51 @@ const (
 )
 
 type directionController struct {
-	stickValue int16
-	listener   chan int
-	done       chan os.Signal
+	stickValue    int16
+	listener      chan int
+	lastDirection int
+	done          chan os.Signal
 }
 
 func (d *directionController) pulseValue() {
-	ticker := time.NewTicker(100 * time.Millisecond)
+	ticker := time.NewTicker(1 * time.Second)
 
 	for {
 		select {
 		case <-d.done:
+			close(d.listener)
 			return
 		case <-ticker.C:
-			d.listener <- int(d.stickValue)
+			convertedAngle := float64(d.stickValue) / 32768.0 * float64(maxAngle)
+
+			if abs(int(convertedAngle)-d.lastDirection) > 5 {
+				d.listener <- int(convertedAngle)
+				d.lastDirection = int(convertedAngle)
+			}
 		}
 	}
+}
 
-	close(d.listener)
+func abs(a int) (ab int) {
+	if a < 0 {
+		return a * -1
+	}
+
+	return a
 }
 
 type directionUpdater struct {
 	directionMotor *legohat.LegoHatMotorDriver
 	input          chan int
-	lastValue      int
 }
 
 func (u *directionUpdater) updateDirection() {
 	for v := range u.input {
-		angle := float64(v) / 32768.0 * float64(maxAngle)
+		log.Printf("Adjusting front motor to angle %d", v)
 
-		log.Printf("Adjusting front motor to angle %d", int(angle))
-		if u.lastValue != int(angle) {
-			_, err := u.directionMotor.RunToAngle(int(angle), legohat.WithSpeed(100))
-			if err != nil {
-				log.Printf("error setting angle: %s", err.Error())
-			}
-
-			u.lastValue = int(angle)
+		_, err := u.directionMotor.RunToAngle(v, legohat.WithSpeed(100))
+		if err != nil {
+			log.Printf("error setting angle: %s", err.Error())
 		}
 	}
 }
@@ -86,6 +93,13 @@ func main() {
 	work := func() {
 		log.Printf("Started lego hat")
 		direction.RunToAngle(0, legohat.WithSpeed(100))
+
+		state, err := direction.GetState()
+		if err != nil {
+			log.Printf("error getting state: %s", err.Error())
+		} else {
+			log.Printf("Current state: %s\n", state)
+		}
 
 		go directionCtrl.pulseValue()
 		go directionUpdater.updateDirection()
