@@ -51,6 +51,32 @@ func (l *LegoHatLightDriver) Start() (err error) {
 	return nil
 }
 
+func (l *LegoHatLightDriver) Blink(interval time.Duration, duration time.Duration) (done chan struct{}) {
+	done = make(chan struct{}, 1)
+
+	go func() {
+		count := int64(duration / interval)
+		if duration%interval > 0 {
+			count++
+		}
+
+		for i := int64(0); i < count; i++ {
+			l.blinkOnce(interval)
+		}
+
+		done <- struct{}{}
+	}()
+
+	return done
+}
+
+func (l *LegoHatLightDriver) blinkOnce(duration time.Duration) {
+	l.TurnOn()
+	time.Sleep(duration / 2)
+	l.TurnOff()
+	time.Sleep(duration / 2)
+}
+
 func (l *LegoHatLightDriver) TurnOn() {
 	for _, d := range l.devices {
 		d.toDevice <- []byte(fmt.Sprintf("port %d ; plimit 1 ; set -1\r", d.id))
