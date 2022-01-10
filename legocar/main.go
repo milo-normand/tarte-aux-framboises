@@ -97,7 +97,7 @@ func main() {
 		direction.RunToAngle(0, legohat.WithSpeed(100))
 		direction.SetBias(0.5)
 		motor.SetPLimit(1.0)
-		light.Blink(100*time.Millisecond, 2*time.Second)
+		light.Blink(500*time.Millisecond, 4*time.Second)
 
 		state, err := direction.GetState()
 		if err != nil {
