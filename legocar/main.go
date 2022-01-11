@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -71,6 +73,11 @@ func (u *directionUpdater) updateDirection() {
 }
 
 func main() {
+	err := connectController()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	r := raspi.NewAdaptor()
 	hat := legohat.NewAdaptor(r)
 	motor := legohat.NewLegoMotorDriver(hat, legohat.PortA)
@@ -91,7 +98,10 @@ func main() {
 		done:       make(chan os.Signal),
 	}
 
+	controllerLoopDone := make(chan os.Signal)
 	signal.Notify(directionCtrl.done, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(controllerLoopDone, os.Interrupt, syscall.SIGTERM)
+	go reconnectController(controllerLoopDone)
 
 	work := func() {
 		log.Printf("Started lego hat")
@@ -158,4 +168,29 @@ func main() {
 	)
 
 	robot.Start()
+}
+
+func reconnectController(done chan os.Signal) {
+	for {
+		select {
+		case <-done:
+			log.Printf("Terminating controller connection loop")
+			return
+		default:
+			connectController()
+		}
+	}
+}
+
+func connectController() (err error) {
+	out, err := exec.Command("bluetoothctl connect D0:BC:C1:CF:D5:81").Output()
+	if err != nil {
+		return err
+	}
+
+	if !strings.Contains(string(out), "Connection successful") {
+		fmt.Printf("controller connection failed, got output: %s", out)
+	}
+
+	return nil
 }
