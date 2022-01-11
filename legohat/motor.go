@@ -31,7 +31,7 @@ type LegoHatMotorDriver struct {
 
 type MotorDriverOption func(driver *LegoHatMotorDriver)
 
-func WithAdditionalMotor(portID LegoHatPortID) func(driver *LegoHatMotorDriver) {
+func WithAdditionalMotor(portID LegoHatPortID) MotorDriverOption {
 	return func(driver *LegoHatMotorDriver) {
 		driver.devices = append(driver.devices, driver.adaptor.registerDevice(portID, Motor))
 	}

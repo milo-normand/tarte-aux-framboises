@@ -24,6 +24,8 @@ const (
 	TimeoutMessage      DeviceMessageType = "timeout"
 	PulseDoneMessage    DeviceMessageType = "pulseDone"
 	RampDoneMessage     DeviceMessageType = "rampDone"
+	PowerStatusMessage  DeviceMessageType = "powerStatus"
+	PowerFaultMessage   DeviceMessageType = "powerFault"
 	DataMessage         DeviceMessageType = "data"
 )
 
@@ -59,6 +61,7 @@ type DeviceClass int
 
 const (
 	Unknown DeviceClass = iota
+	Internal
 	Light
 	TiltSensor
 	MotionSensor

@@ -76,6 +76,7 @@ func main() {
 	motor := legohat.NewLegoMotorDriver(hat, legohat.PortA)
 	direction := legohat.NewLegoMotorDriver(hat, legohat.PortB)
 	light := legohat.NewLegoLightDriver(hat, legohat.PortC)
+	powerSensor := legohat.NewLegoHatPowerSensorDriver(hat, legohat.WithLowPowerThreshold(7.2), legohat.WithNotificationInterval(10*time.Second))
 	joystickAdaptor := joystick.NewAdaptor()
 	ctrl := joystick.NewDriver(joystickAdaptor, "dualshock4")
 
@@ -109,6 +110,22 @@ func main() {
 		go directionCtrl.driveUpdates()
 		go directionUpdater.updateDirection()
 
+		powerSensor.On(string(legohat.PowerStatusMessage), func(data interface{}) {
+			if val, ok := data.(float64); !ok {
+				log.Printf("Error receiving power update, invalid format: %v", data)
+			} else {
+				log.Printf("Received power update: %.2f V", val)
+			}
+		})
+
+		powerSensor.On(string(legohat.LowPowerEvent), func(data interface{}) {
+			if val, ok := data.(float64); !ok {
+				log.Printf("Error receiving low power update, invalid format: %v", data)
+			} else {
+				log.Printf("Low power update: %.2f V", val)
+			}
+		})
+
 		ctrl.On(joystick.RightX, func(data interface{}) {
 			fmt.Println("right_x", data)
 
@@ -136,7 +153,7 @@ func main() {
 
 	robot := gobot.NewRobot("legocar",
 		[]gobot.Connection{r, hat, joystickAdaptor},
-		[]gobot.Device{motor, direction, ctrl, light},
+		[]gobot.Device{motor, direction, ctrl, light, powerSensor},
 		work,
 	)
 

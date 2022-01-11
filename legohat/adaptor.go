@@ -35,6 +35,7 @@ const (
 type LegoHatPortID int
 
 const (
+	None  = LegoHatPortID(-1)
 	PortA = LegoHatPortID(0)
 	PortB = LegoHatPortID(1)
 	PortC = LegoHatPortID(2)
@@ -59,6 +60,7 @@ const (
 	nothingConnectedMessage = "no device detected"
 	pulseDoneMessage        = "pulse done"
 	rampDoneMessage         = "ramp done"
+	powerFaultMessage       = "Motor power fault"
 )
 
 const (
@@ -277,6 +279,25 @@ func (l *Adaptor) inputsToEvents() {
 				l.eventDispatcher.input <- DeviceEvent{
 					portID:  LegoHatPortID(portID),
 					msgType: RampDoneMessage,
+				}
+			}
+		} else {
+			asFields := strings.Fields(line)
+			switch {
+			case strings.Contains(line, powerFaultMessage):
+				log.Printf("Power fault message: %s\n", line)
+				l.eventDispatcher.input <- DeviceEvent{
+					portID:  None,
+					msgType: PowerFaultMessage,
+					data:    []byte(asFields[0]),
+				}
+			case len(asFields) == 2 && asFields[1] == "V":
+				log.Printf("Power status message: %s\n", line)
+
+				l.eventDispatcher.input <- DeviceEvent{
+					portID:  None,
+					msgType: PowerStatusMessage,
+					data:    []byte(asFields[0]),
 				}
 			}
 		}

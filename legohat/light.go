@@ -11,7 +11,6 @@ import (
 // LegoHatLightDriver Represents a lego hat light driver
 type LegoHatLightDriver struct {
 	name       string
-	halt       chan bool
 	connection gobot.Connection
 	deviceDriver
 
@@ -26,7 +25,6 @@ func NewLegoLightDriver(a *Adaptor, portID LegoHatPortID, opts ...LightDriverOpt
 		name:       gobot.DefaultName(fmt.Sprintf("LegoHat %s", Light)),
 		connection: a,
 		Eventer:    gobot.NewEventer(),
-		halt:       make(chan bool),
 		deviceDriver: deviceDriver{
 			adaptor: a,
 			devices: make([]*deviceRegistration, 0),
@@ -85,7 +83,7 @@ func (l *LegoHatLightDriver) TurnOn() {
 
 func (l *LegoHatLightDriver) TurnOff() {
 	for _, d := range l.devices {
-		d.toDevice <- []byte(fmt.Sprintf("port %d ; plimit 1 ; set 1\r", d.id))
+		d.toDevice <- []byte(fmt.Sprintf("port %d ; plimit 1 ; set 0\r", d.id))
 	}
 }
 
