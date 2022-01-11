@@ -110,7 +110,7 @@ func main() {
 		go directionCtrl.driveUpdates()
 		go directionUpdater.updateDirection()
 
-		powerSensor.On(string(legohat.PowerStatusMessage), func(data interface{}) {
+		powerSensor.On(string(legohat.PowerUpdateEvent), func(data interface{}) {
 			if val, ok := data.(float64); !ok {
 				log.Printf("Error receiving power update, invalid format: %v", data)
 			} else {
