@@ -116,7 +116,7 @@ func (l *LegoHatPowerSensorDriver) refreshPowerStatus() (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	registration := l.adaptor.awaitMessage(l.device.id, RampDoneMessage)
+	registration := l.adaptor.awaitMessage(l.device.id, PowerStatusMessage)
 
 	l.device.toDevice <- []byte("vin\r")
 
