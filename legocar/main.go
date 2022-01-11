@@ -176,7 +176,8 @@ func reconnectController(done chan os.Signal) {
 		case <-done:
 			log.Printf("Terminating controller connection loop")
 			return
-		default:
+		case <-time.After(10 * time.Second):
+			log.Printf("Reconnecting to controller if lost...")
 			connectController()
 		}
 	}
