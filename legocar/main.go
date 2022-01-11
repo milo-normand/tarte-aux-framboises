@@ -183,7 +183,7 @@ func reconnectController(done chan os.Signal) {
 }
 
 func connectController() (err error) {
-	out, err := exec.Command("bluetoothctl connect D0:BC:C1:CF:D5:81").Output()
+	out, err := exec.Command("bluetoothctl", "connect", "D0:BC:C1:CF:D5:81").Output()
 	if err != nil {
 		return err
 	}
