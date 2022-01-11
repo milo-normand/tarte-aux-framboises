@@ -103,7 +103,7 @@ func (l *LegoHatPowerSensorDriver) pollPower() {
 		case <-l.halt:
 			log.Printf("Stopping polling for power")
 			return
-		default:
+		case <-time.After(l.notificationInterval):
 			err := l.refreshPowerStatus()
 			if err != nil {
 				log.Printf("error polling for power voltage: %s", err.Error())
