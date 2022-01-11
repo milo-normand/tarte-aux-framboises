@@ -83,7 +83,7 @@ func main() {
 	motor := legohat.NewLegoMotorDriver(hat, legohat.PortA)
 	direction := legohat.NewLegoMotorDriver(hat, legohat.PortB)
 	light := legohat.NewLegoLightDriver(hat, legohat.PortC)
-	powerSensor := legohat.NewLegoHatPowerSensorDriver(hat, legohat.WithLowPowerThreshold(7.2), legohat.WithNotificationInterval(10*time.Second))
+	powerSensor := legohat.NewLegoHatPowerSensorDriver(hat, legohat.WithLowPowerThreshold(7.2), legohat.WithNotificationInterval(1*time.Minute))
 	joystickAdaptor := joystick.NewAdaptor()
 	ctrl := joystick.NewDriver(joystickAdaptor, "dualshock4")
 
@@ -98,10 +98,7 @@ func main() {
 		done:       make(chan os.Signal),
 	}
 
-	controllerLoopDone := make(chan os.Signal)
 	signal.Notify(directionCtrl.done, os.Interrupt, syscall.SIGTERM)
-	signal.Notify(controllerLoopDone, os.Interrupt, syscall.SIGTERM)
-	go reconnectController(controllerLoopDone)
 
 	work := func() {
 		log.Printf("Started lego hat")
@@ -168,19 +165,6 @@ func main() {
 	)
 
 	robot.Start()
-}
-
-func reconnectController(done chan os.Signal) {
-	for {
-		select {
-		case <-done:
-			log.Printf("Terminating controller connection loop")
-			return
-		case <-time.After(10 * time.Second):
-			log.Printf("Reconnecting to controller if lost...")
-			connectController()
-		}
-	}
 }
 
 func connectController() (err error) {
