@@ -162,7 +162,9 @@ func main() {
 			if val, ok := data.(int16); !ok {
 				log.Printf("error reading int16 value from %v\n", data)
 			} else {
-				level := math.Abs(float64(val) / 32768.0)
+				// Ajust value to a 0 to 2 * 32768 range
+				adjusted := int(val) + 32768
+				level := math.Abs(float64(adjusted) / 32768.0 * 2)
 				log.Printf("Adjusting light to %f\n", level)
 
 				if level == 0 {
