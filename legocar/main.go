@@ -156,8 +156,8 @@ func main() {
 				}
 			}
 		})
-		ctrl.On(joystick.L1Press, func(data interface{}) {
-			fmt.Println("L1 Press", data)
+		ctrl.On(joystick.L2Press, func(data interface{}) {
+			fmt.Println("L2 Press", data)
 			if val, ok := data.(int16); !ok {
 				log.Printf("error reading int16 value from %v\n", data)
 			} else {
@@ -170,8 +170,8 @@ func main() {
 				}
 			}
 		})
-		ctrl.On(joystick.L1Release, func(data interface{}) {
-			fmt.Println("L1 Release", data)
+		ctrl.On(joystick.L2Release, func(data interface{}) {
+			fmt.Println("L2 Release", data)
 
 			log.Printf("Turning light off\n")
 
