@@ -30,7 +30,7 @@ type directionController struct {
 }
 
 func (d *directionController) driveUpdates() {
-	ticker := time.NewTicker(50 * time.Millisecond)
+	ticker := time.NewTicker(80 * time.Millisecond)
 
 	for {
 		select {
@@ -40,7 +40,7 @@ func (d *directionController) driveUpdates() {
 		case t := <-ticker.C:
 			convertedAngle := float64(d.stickValue) / -32768.0 * float64(maxAngle)
 
-			if abs(int(convertedAngle)-d.lastDirection) > 3 || (t.Sub(d.lastUpdate) > 1*time.Second && abs(int(convertedAngle)-d.lastDirection) > 0) {
+			if abs(int(convertedAngle)-d.lastDirection) > 4 || (t.Sub(d.lastUpdate) > 1*time.Second && abs(int(convertedAngle)-d.lastDirection) > 0) {
 				d.listener <- int(convertedAngle)
 				d.lastDirection = int(convertedAngle)
 			}
