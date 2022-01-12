@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -161,13 +162,13 @@ func main() {
 			if val, ok := data.(int16); !ok {
 				log.Printf("error reading int16 value from %v\n", data)
 			} else {
-				level := float32(val) / 32768.0
+				level := math.Abs(float64(val) / 32768.0)
 				log.Printf("Adjusting light to %f\n", level)
 
 				if level == 0 {
 					light.TurnOff()
 				} else {
-					err := light.TurnOn(legohat.WithLightLevel(level))
+					err := light.TurnOn(legohat.WithLightLevel(float32(level)))
 					if err != nil {
 						log.Printf("error setting light level: %s", err.Error())
 					}
