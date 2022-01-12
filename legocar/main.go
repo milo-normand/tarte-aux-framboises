@@ -156,26 +156,23 @@ func main() {
 				}
 			}
 		})
-		ctrl.On(joystick.L2Press, func(data interface{}) {
-			fmt.Println("L2 Press", data)
+		ctrl.On(joystick.L2, func(data interface{}) {
+			fmt.Println("L2", data)
 			if val, ok := data.(int16); !ok {
 				log.Printf("error reading int16 value from %v\n", data)
 			} else {
 				level := float32(val) / 32768.0
 				log.Printf("Adjusting light to %f\n", level)
 
-				err := light.TurnOn(legohat.WithLightLevel(level))
-				if err != nil {
-					log.Printf("error setting light level: %s", err.Error())
+				if level == 0 {
+					light.TurnOff()
+				} else {
+					err := light.TurnOn(legohat.WithLightLevel(level))
+					if err != nil {
+						log.Printf("error setting light level: %s", err.Error())
+					}
 				}
 			}
-		})
-		ctrl.On(joystick.L2Release, func(data interface{}) {
-			fmt.Println("L2 Release", data)
-
-			log.Printf("Turning light off\n")
-
-			light.TurnOff()
 		})
 	}
 
