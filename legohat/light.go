@@ -68,17 +68,57 @@ func (l *LegoHatLightDriver) Blink(interval time.Duration, duration time.Duratio
 	return done
 }
 
-func (l *LegoHatLightDriver) blinkOnce(duration time.Duration) {
-	l.TurnOn()
+func (l *LegoHatLightDriver) blinkOnce(duration time.Duration, opts ...LightOption) (err error) {
+	err = l.TurnOn(opts...)
+	if err != nil {
+		return err
+	}
 	time.Sleep(duration / 2)
 	l.TurnOff()
 	time.Sleep(duration / 2)
+
+	return nil
 }
 
-func (l *LegoHatLightDriver) TurnOn() {
-	for _, d := range l.devices {
-		d.toDevice <- []byte(fmt.Sprintf("port %d ; plimit 1 ; set -1\r", d.id))
+type lightActivationSpec struct {
+	level float32
+}
+
+type LightOption func(s *lightActivationSpec)
+
+func WithLightLevel(level float32) LightOption {
+	return func(s *lightActivationSpec) {
+		s.level = level
 	}
+}
+
+func (s *lightActivationSpec) Validate() (err error) {
+	if s.level < 0 || s.level > 1.0 {
+		return fmt.Errorf("light level should be between 0 and 1 but was %.2f", s.level)
+	}
+
+	return nil
+}
+
+func (l *LegoHatLightDriver) TurnOn(opts ...LightOption) (err error) {
+	light := lightActivationSpec{
+		level: 1.0,
+	}
+
+	for _, apply := range opts {
+		apply(&light)
+	}
+
+	err = light.Validate()
+	if err != nil {
+		return err
+	}
+
+	for _, d := range l.devices {
+		d.toDevice <- []byte(fmt.Sprintf("port %d ; plimit 1 ; set -%.2f\r", d.id, light.level))
+	}
+
+	return nil
 }
 
 func (l *LegoHatLightDriver) TurnOff() {
