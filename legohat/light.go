@@ -115,7 +115,7 @@ func (l *LegoHatLightDriver) TurnOn(opts ...LightOption) (err error) {
 	}
 
 	for _, d := range l.devices {
-		d.toDevice <- []byte(fmt.Sprintf("port %d ; plimit 1 ; set -%.2f\r", d.id, light.level))
+		d.toDevice <- []byte(fmt.Sprintf("port %d ; plimit 1 ; set -%.4f\r", d.id, light.level))
 	}
 
 	return nil
