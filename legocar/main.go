@@ -164,7 +164,7 @@ func main() {
 			} else {
 				// Ajust value to a 0 to 2 * 32768 range
 				adjusted := int(val) + 32768
-				level := math.Abs(float64(adjusted) / 32768.0 * 2)
+				level := math.Abs(float64(adjusted) / (32768.0 * 2))
 				log.Printf("Adjusting light to %f\n", level)
 
 				if level == 0 {
