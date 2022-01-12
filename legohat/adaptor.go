@@ -325,6 +325,9 @@ func ReadPort(port serial.Port, out chan string) {
 func (l *Adaptor) Finalize() (err error) {
 	log.Printf("Finalizing adaptor\n")
 
+	l.toWrite <- []byte("off\r")
+	time.Sleep(50 * time.Millisecond)
+
 	// Closing serial port
 	l.port.Close()
 
