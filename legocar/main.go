@@ -165,11 +165,12 @@ func main() {
 				// Ajust value to a 0 to 2 * 32768 range
 				adjusted := int(val) + 32768
 				level := math.Abs(float64(adjusted) / (32768.0 * 2))
-				log.Printf("Adjusting light to %f\n", level)
 
 				if level == 0 {
+					log.Printf("Turning off light\n")
 					light.TurnOff()
 				} else {
+					log.Printf("Adjusting light to %f\n", level)
 					err := light.TurnOn(legohat.WithLightLevel(float32(level)))
 					if err != nil {
 						log.Printf("error setting light level: %s", err.Error())
