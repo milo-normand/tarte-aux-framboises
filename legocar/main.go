@@ -38,7 +38,7 @@ func (d *directionController) driveUpdates() {
 		case <-d.done:
 			close(d.listener)
 			return
-		case t := <-ticker.C:
+		case <-ticker.C:
 			convertedAngle := float64(d.stickValue) / -32768.0 * float64(maxAngle)
 
 			//if abs(int(convertedAngle)-d.lastDirection) > 4 || (t.Sub(d.lastUpdate) > 1*time.Second && abs(int(convertedAngle)-d.lastDirection) > 0) {
@@ -70,7 +70,7 @@ func (u *directionUpdater) updateDirection() {
 		_, err := u.directionMotor.RunToAngle(v)
 		if berr, ok := err.(legohat.Busy); ok && berr.IsBusy() {
 			log.Printf("Skipping update because busy")
-		} else {
+		} else if err != nil {
 			log.Printf("Got error updating angle: %s", err.Error())
 		}
 	}
