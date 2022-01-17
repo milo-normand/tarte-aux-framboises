@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"gobot.io/x/gobot"
@@ -21,12 +22,28 @@ const (
 // LegoHatMotorDriver Represents a lego hat motor driver
 type LegoHatMotorDriver struct {
 	name       string
-	Active     bool
-	halt       chan bool
 	connection gobot.Connection
 	deviceDriver
+	pendingAction sync.Mutex
+	actionPending bool
 
 	gobot.Eventer
+}
+
+type Busy interface {
+	IsBusy() bool
+}
+
+type BusyError struct {
+	message string
+}
+
+func (be *BusyError) Error() string {
+	return be.message
+}
+
+func (be *BusyError) IsBusy() bool {
+	return true
 }
 
 type MotorDriverOption func(driver *LegoHatMotorDriver)
@@ -42,9 +59,7 @@ func NewLegoMotorDriver(a *Adaptor, portID LegoHatPortID, opts ...MotorDriverOpt
 	b := &LegoHatMotorDriver{
 		name:       gobot.DefaultName(fmt.Sprintf("LegoHat %s", Motor)),
 		connection: a,
-		Active:     false,
 		Eventer:    gobot.NewEventer(),
-		halt:       make(chan bool),
 		deviceDriver: deviceDriver{
 			adaptor: a,
 			devices: make([]*deviceRegistration, 0),
@@ -316,11 +331,21 @@ func (l *LegoHatMotorDriver) runToAngle(angle int, method rotationMethod, opts .
 
 	log.Printf("Current state is %s\n", state)
 
+	l.pendingAction.Lock()
+	if l.actionPending {
+		return nil, &BusyError{message: "Action already in progress, wait for termination before sending new command"}
+	}
+	l.actionPending = true
+	l.pendingAction.Unlock()
+
 	timeoutDuration := time.Second * 10
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutDuration)
 	defer cancel()
 	defer func() {
 		l.TurnOff()
+		l.pendingAction.Lock()
+		l.actionPending = false
+		l.pendingAction.Unlock()
 		done <- struct{}{}
 	}()
 

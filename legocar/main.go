@@ -31,7 +31,7 @@ type directionController struct {
 }
 
 func (d *directionController) driveUpdates() {
-	ticker := time.NewTicker(80 * time.Millisecond)
+	ticker := time.NewTicker(20 * time.Millisecond)
 
 	for {
 		select {
@@ -41,7 +41,8 @@ func (d *directionController) driveUpdates() {
 		case t := <-ticker.C:
 			convertedAngle := float64(d.stickValue) / -32768.0 * float64(maxAngle)
 
-			if abs(int(convertedAngle)-d.lastDirection) > 4 || (t.Sub(d.lastUpdate) > 1*time.Second && abs(int(convertedAngle)-d.lastDirection) > 0) {
+			//if abs(int(convertedAngle)-d.lastDirection) > 4 || (t.Sub(d.lastUpdate) > 1*time.Second && abs(int(convertedAngle)-d.lastDirection) > 0) {
+			if abs(int(convertedAngle)-d.lastDirection) > 1 {
 				d.listener <- int(convertedAngle)
 				d.lastDirection = int(convertedAngle)
 			}
@@ -67,8 +68,10 @@ func (u *directionUpdater) updateDirection() {
 		log.Printf("Adjusting front motor to angle %d\n", v)
 
 		_, err := u.directionMotor.RunToAngle(v)
-		if err != nil {
-			log.Printf("error setting angle: %s", err.Error())
+		if berr, ok := err.(legohat.Busy); ok && berr.IsBusy() {
+			log.Printf("Skipping update because busy")
+		} else {
+			log.Printf("Got error updating angle: %s", err.Error())
 		}
 	}
 }
