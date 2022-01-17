@@ -104,6 +104,8 @@ func main() {
 
 	signal.Notify(directionCtrl.done, os.Interrupt, syscall.SIGTERM)
 
+	var robot *gobot.Robot
+
 	work := func() {
 		log.Printf("Started lego hat")
 		direction.RunToAngle(0, legohat.WithSpeed(100))
@@ -148,6 +150,14 @@ func main() {
 				directionCtrl.stickValue = val
 			}
 		})
+
+		ctrl.On(joystick.SquarePress, func(data interface{}) {
+			fmt.Println("square_press", data)
+
+			log.Printf("Terminating...")
+			robot.Stop()
+		})
+
 		ctrl.On(joystick.LeftY, func(data interface{}) {
 			fmt.Println("left_y", data)
 			if val, ok := data.(int16); !ok {
@@ -185,7 +195,7 @@ func main() {
 		})
 	}
 
-	robot := gobot.NewRobot("legocar",
+	robot = gobot.NewRobot("legocar",
 		[]gobot.Connection{r, hat, joystickAdaptor},
 		[]gobot.Device{motor, direction, ctrl, light, powerSensor},
 		work,
