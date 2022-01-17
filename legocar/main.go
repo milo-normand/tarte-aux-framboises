@@ -87,7 +87,7 @@ func main() {
 	motor := legohat.NewLegoMotorDriver(hat, legohat.PortA)
 	direction := legohat.NewLegoMotorDriver(hat, legohat.PortB)
 	light := legohat.NewLegoLightDriver(hat, legohat.PortC)
-	powerSensor := legohat.NewLegoHatPowerSensorDriver(hat, legohat.WithLowPowerThreshold(7.2), legohat.WithNotificationInterval(1*time.Minute))
+	powerSensor := legohat.NewLegoHatPowerSensorDriver(hat, legohat.WithLowPowerThreshold(7.5), legohat.WithNotificationInterval(1*time.Minute))
 	joystickAdaptor := joystick.NewAdaptor()
 	ctrl := joystick.NewDriver(joystickAdaptor, "dualshock4")
 
@@ -130,6 +130,8 @@ func main() {
 		})
 
 		powerSensor.On(string(legohat.LowPowerEvent), func(data interface{}) {
+			light.TurnOn(legohat.WithLightLevel(0.6))
+
 			if val, ok := data.(float64); !ok {
 				log.Printf("Error receiving low power update, invalid format: %v", data)
 			} else {
