@@ -154,8 +154,12 @@ func main() {
 		ctrl.On(joystick.SquarePress, func(data interface{}) {
 			fmt.Println("square_press", data)
 
-			log.Printf("Terminating...")
-			robot.Stop()
+			log.Printf("Shutting down...")
+			out, err := exec.Command("sudo", "shutdown", "now").Output()
+			if err != nil {
+				log.Printf("error shutting down raspberry pi...\n")
+			}
+			log.Printf("Result from shutdown command: %s\n", out)
 		})
 
 		ctrl.On(joystick.LeftY, func(data interface{}) {
